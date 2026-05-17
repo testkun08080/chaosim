@@ -1,0 +1,30 @@
+title: "10 Pendulums — Chaos Begins"
+slug: sample_001_double_pendulum
+simulator: blender
+scene_script: double_pendulum
+duration_sec: 30
+description: >
+  Ten double pendulums start from nearly identical positions. Within seconds,
+  they diverge completely — a stunning visual proof of chaos theory.
+hook: "All 10 pendulums move together... then chaos erupts at 3 seconds"
+viral_angle: >
+  Chaos theory made visual. The moment they split apart is deeply satisfying
+  and mind-blowing. Perfect for STEM audiences and curious minds.
+params:
+  pendulum_count: 10
+  arm1_length: 1.5
+  arm2_length: 1.2
+  mass1: 1.0
+  mass2: 0.8
+  initial_angle1_deg: 120
+  initial_angle2_deg: 90
+render_preset: high
+music_mood: "ambient, builds slowly, then dramatic"
+caption: "10 pendulums start identical. Chaos takes over 🌀 #shorts #physics #chaos"
+hashtags:
+  - chaostheory
+  - doublependulum
+  - physics
+  - satisfying
+  - STEM
+  - simulation

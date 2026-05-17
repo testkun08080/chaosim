@@ -1,0 +1,31 @@
+title: "Ink Chaos — 3 Colors, One Tank"
+slug: sample_002_fluid_ink
+simulator: blender
+scene_script: fluid_ink
+duration_sec: 20
+description: >
+  Three ink drops — red, blue, green — fall into still water and create
+  hypnotic fluid chaos. Colors mix, swirl, and never fully blend.
+hook: "Three drops hit the water simultaneously at frame 1"
+viral_angle: >
+  Fluid simulations are consistently viral on Shorts. The color mixing and
+  chaotic swirl patterns are deeply satisfying. ASMR-adjacent.
+params:
+  domain_size: 2.0
+  ink_drops: 3
+  viscosity: 0.001
+  ink_colors:
+    - [0.0, 0.0, 1.0]
+    - [1.0, 0.0, 0.0]
+    - [0.0, 1.0, 0.0]
+  drop_height: 1.5
+render_preset: high
+music_mood: "calm, lo-fi, water sounds"
+caption: "3 ink drops. 1 tank. Pure chaos 🎨 #shorts #fluid #satisfying"
+hashtags:
+  - fluidsimulation
+  - ink
+  - satisfying
+  - chaos
+  - blender
+  - art

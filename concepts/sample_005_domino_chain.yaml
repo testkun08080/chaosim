@@ -1,0 +1,29 @@
+title: "50 Dominos — Spiral Chain Reaction"
+slug: sample_005_domino_chain
+simulator: blender
+scene_script: domino_chain
+duration_sec: 20
+description: >
+  50 rainbow-colored dominos arranged in a spiral. One push triggers a
+  satisfying chain reaction that spirals outward to the final dramatic fall.
+hook: "First domino tips at frame 5 — chain begins immediately"
+viral_angle: >
+  Domino chain reactions are perennially viral. The spiral arrangement
+  adds visual complexity. Rainbow colors make it shareable and aesthetic.
+params:
+  domino_count: 50
+  spacing: 0.35
+  domino_height: 0.8
+  domino_width: 0.4
+  domino_depth: 0.1
+  curve_radius: 3.0
+render_preset: high
+music_mood: "upbeat, builds with the chain reaction"
+caption: "50 rainbow dominos in a spiral — one push 🌈 #shorts #dominos #satisfying"
+hashtags:
+  - dominos
+  - chainreaction
+  - satisfying
+  - physics
+  - rainbow
+  - rigidbody
