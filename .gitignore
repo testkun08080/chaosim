@@ -1,0 +1,10 @@
+outputs/
+config/youtube_token.pickle
+config/youtube_client_secret.json
+.env
+__pycache__/
+*.pyc
+*.pyo
+.DS_Store
+*.blend1
+*.blend2

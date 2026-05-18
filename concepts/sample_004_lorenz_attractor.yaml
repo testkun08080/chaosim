@@ -1,0 +1,31 @@
+title: "The Butterfly That Broke Physics"
+slug: sample_004_lorenz_attractor
+simulator: blender
+scene_script: lorenz_attractor
+duration_sec: 30
+description: >
+  The Lorenz Strange Attractor — five glowing particles tracing the famous
+  butterfly shape. Chaos theory's most beautiful equation, visualized in 3D.
+hook: "Five glowing trails begin the same path, then split apart at 2 seconds"
+viral_angle: >
+  The Lorenz attractor is one of the most recognizable chaos theory images.
+  The glowing 3D animation from multiple angles generates huge engagement
+  from science and math communities.
+params:
+  sigma: 10.0
+  rho: 28.0
+  beta: 2.667
+  n_trajectories: 5
+  dt: 0.005
+  trail_width: 0.025
+  scale: 0.15
+render_preset: high
+music_mood: "ethereal, space ambient"
+caption: "The Butterfly Effect visualized in 3D 🦋 #shorts #chaos #math #science"
+hashtags:
+  - lorenzattractor
+  - butterflyeffect
+  - chaostheory
+  - mathematics
+  - science
+  - visualization

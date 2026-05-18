@@ -1,0 +1,28 @@
+title: "10,000 Sand Grains — Wall Collapse"
+slug: sample_003_sand_collapse
+simulator: blender
+scene_script: sand_collapse
+duration_sec: 25
+description: >
+  A wall holds back thousands of sand grains. The wall vanishes.
+  An avalanche of colorful particles cascades in slow motion.
+hook: "Wall disappears at frame 1 — instant avalanche"
+viral_angle: >
+  Granular collapse videos are massively popular. The slow-motion
+  cascade of colored particles triggers deep satisfaction. Widely shared.
+params:
+  particle_count: 2000
+  stack_height: 4.0
+  particle_radius: 0.05
+  restitution: 0.1
+  friction: 0.8
+  color_gradient: true
+render_preset: high
+music_mood: "building tension, then release"
+caption: "The wall disappears... 10,000 grains collapse 😱 #shorts #satisfying #physics"
+hashtags:
+  - sandcollapse
+  - granular
+  - satisfying
+  - physicssimulation
+  - rigidbody

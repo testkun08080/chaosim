@@ -1,0 +1,29 @@
+blender:
+  path: "${BLENDER_PATH:/usr/bin/blender}"
+  version_min: "3.6"
+
+output:
+  base_dir: "outputs"
+  renders_dir: "outputs/renders"
+  uploads_dir: "outputs/uploads"
+
+video:
+  format: "mp4"
+  resolution: [1080, 1920]   # 9:16 vertical
+  fps: 60
+  max_duration_sec: 59       # YouTube Shorts limit
+
+render:
+  default_preset: "high"
+  engine: "CYCLES"
+  device: "${RENDER_DEVICE:CPU}"
+
+youtube:
+  category_id: "28"           # Science & Technology
+  privacy: "private"          # Start private, review then publish
+  tags:
+    - chaos
+    - simulation
+    - physics
+    - satisfying
+    - shorts
