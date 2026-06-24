@@ -33,5 +33,21 @@ python scripts/chaosim.py upload outputs/renders/double_pendulum_001.mp4
 All scene scripts run via: `blender --background --python simulators/blender/runner.py -- <concept.yaml>`
 Scripts must be self-contained (no relative imports) as they run inside Blender's Python.
 
+## HyperFrames Composition Layer
+HTML templates in `templates/hyperframes/` and `templates/thumbnail/` render via HyperFrames CLI
+(or ffmpeg stub fallback). Templates follow the standalone-composition contract:
+- Root `<div data-composition-id="main" data-duration="N">` in `<body>`
+- Exactly one paused GSAP timeline registered at `window.__timelines["main"]`
+- Animations defined in `{% block timeline %}` with `tl.from(selector, ...)` tweens
+
+GSAP is loaded from `.agents/skills/graphic-overlays/assets/vendor/gsap.min.js` if available,
+otherwise from CDN. HyperFrames `render` and `snapshot` commands are driven as subprocesses,
+similar to Blender.
+
+If you see `data-composition-id not registered` or 45-second timeouts during HyperFrames render:
+1. Ensure the timeline is registered at `window.__timelines["main"]` (not a sub-object)
+2. Check `.env.example` for `HYPERFRAMES_FFMPEG_PATH` if static-ffmpeg v8 incompatibilities arise
+
 ## Environment Variables
-See `.env.example`. Key vars: `ANTHROPIC_API_KEY`, `YOUTUBE_CLIENT_SECRET`, `BLENDER_PATH`
+See `.env.example`. Key vars: `ANTHROPIC_API_KEY`, `YOUTUBE_CLIENT_SECRET`, `BLENDER_PATH`,
+`HYPERFRAMES_PATH`, `HYPERFRAMES_FFMPEG_PATH` (if needed), `VOICEVOX_URL`

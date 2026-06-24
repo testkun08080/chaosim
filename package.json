@@ -1,0 +1,20 @@
+{
+  "name": "chaosim-hyperframes",
+  "version": "0.1.0",
+  "private": true,
+  "description": "HyperFrames (HTML -> video) toolchain for the Chaosim pipeline",
+  "scripts": {
+    "hf:init": "hyperframes init",
+    "hf:studio": "hyperframes preview",
+    "hf:preview": "hyperframes preview",
+    "hf:render": "hyperframes render",
+    "hf:lint": "hyperframes lint"
+  },
+  "devDependencies": {
+    "hyperframes": "^0.6.120",
+    "@hyperframes/studio": "^0.6.120"
+  },
+  "engines": {
+    "node": ">=22"
+  }
+}

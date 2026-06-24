@@ -1,0 +1,18 @@
+{% extends "_base.html.j2" %}
+{% block style %}
+  .wrap { display: flex; flex-direction: column; justify-content: center;
+          align-items: center; height: 100%; text-align: center;
+          padding: 0 80px; box-sizing: border-box; }
+  h1 { font-size: 100px; font-weight: 800; line-height: 1.12; margin: 0; }
+  .hook { margin-top: 48px; font-size: 52px; font-weight: 600; color: {{ accent }}; }
+{% endblock %}
+{% block body %}
+  <div class="wrap">
+    <h1 id="title">{{ title }}</h1>
+    {% if hook %}<div class="hook" id="hook">{{ hook }}</div>{% endif %}
+  </div>
+{% endblock %}
+{% block timeline %}
+    tl.from("#title", { y: 60, opacity: 0, duration: 0.8, ease: "power3.out" }, 0);
+    {% if hook %}tl.from("#hook", { opacity: 0, duration: 0.8, ease: "power2.out" }, 0.5);{% endif %}
+{% endblock %}

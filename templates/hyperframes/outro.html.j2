@@ -1,0 +1,22 @@
+{% extends "_base.html.j2" %}
+{% block style %}
+  .wrap { display: flex; flex-direction: column; justify-content: center;
+          align-items: center; height: 100%; text-align: center; padding: 0 80px; }
+  .cta { font-size: 88px; font-weight: 800; margin: 0; }
+  .sub { margin-top: 36px; font-size: 46px; color: {{ accent }}; }
+  .tags { margin-top: 60px; font-size: 38px; opacity: 0.85; }
+{% endblock %}
+{% block body %}
+  <div class="wrap">
+    <h1 class="cta" id="cta">{{ text | default('フォローして次もチェック') }}</h1>
+    <div class="sub" id="sub">{{ caption }}</div>
+    {% if hashtags %}
+    <div class="tags" id="tags">{% for t in hashtags %}#{{ t }} {% endfor %}</div>
+    {% endif %}
+  </div>
+{% endblock %}
+{% block timeline %}
+    tl.from("#cta", { scale: 0.8, opacity: 0, duration: 0.7, ease: "back.out(1.7)" }, 0);
+    tl.from("#sub", { opacity: 0, duration: 0.7 }, 0.3);
+    {% if hashtags %}tl.from("#tags", { opacity: 0, duration: 0.7 }, 0.6);{% endif %}
+{% endblock %}

@@ -27,3 +27,28 @@ youtube:
     - physics
     - satisfying
     - shorts
+
+templates:
+  default_video_template: "default_shorts"
+
+hyperframes:
+  enabled: true
+  fps: 60
+  transparent_overlays: true
+
+voicevox:
+  url: "${VOICEVOX_URL:http://localhost:50021}"
+  default_speaker: 3          # ずんだもん(ノーマル)
+  default_speed: 1.0
+  default_pitch: 0.0
+
+narration:
+  estimate_sec_per_char: 0.18  # used to size the silent stub when VOICEVOX is down
+
+compositing:
+  bgm_volume: 0.18
+  narration_volume: 1.0
+
+thumbnail:
+  size: [1280, 720]
+  default_style: "bold_headline"
