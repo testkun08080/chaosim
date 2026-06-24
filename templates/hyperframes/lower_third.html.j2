@@ -1,0 +1,15 @@
+{% extends "_base.html.j2" %}
+{# Rendered with transparent=True so it can be overlaid on the simulation footage. #}
+{% block style %}
+  .lower { position: absolute; left: 0; right: 0; bottom: 180px;
+           display: flex; justify-content: center; padding: 0 60px; }
+  .bubble { background: rgba(0,0,0,0.55); border-left: 8px solid {{ accent }};
+            border-radius: 16px; padding: 28px 40px; max-width: 90%;
+            font-size: 52px; font-weight: 700; line-height: 1.3; text-align: center; }
+{% endblock %}
+{% block body %}
+  <div class="lower"><div class="bubble" id="caption">{{ text }}</div></div>
+{% endblock %}
+{% block timeline %}
+    tl.from("#caption", { y: 30, opacity: 0, duration: 0.4, ease: "power2.out" }, 0);
+{% endblock %}

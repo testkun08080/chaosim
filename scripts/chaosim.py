@@ -1,7 +1,12 @@
 """Main CLI for the Chaosim pipeline."""
 
-import click
+import sys
 from pathlib import Path
+
+# Ensure the repo root is importable when run as `python scripts/chaosim.py`.
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+
+import click
 from rich.console import Console
 from rich.panel import Panel
 from dotenv import load_dotenv
@@ -51,23 +56,109 @@ def render(concept_file: str, preset: str | None):
 
 @cli.command()
 @click.argument("concept_file", type=click.Path(exists=True))
-@click.option("--upload", is_flag=True, help="Upload to YouTube after rendering")
-@click.option("--preset", default=None, help="Override render preset")
-def run(concept_file: str, upload: bool, preset: str | None):
-    """Full pipeline: render + post-process (+ optional upload)."""
+def material(concept_file: str):
+    """Render HyperFrames video material (intro/overlays/outro) for a concept."""
+    from pipeline.config import load_settings
+    from pipeline.planner import load_concept, normalize_concept
+    from pipeline.templating import load_video_template
+    from pipeline.workflow import stage_material
+
+    concept = normalize_concept(load_concept(Path(concept_file)))
+    settings = load_settings()
+    vt = load_video_template(concept["video_template"])
+    sim_path = Path("outputs/renders") / f"{concept.get('slug', 'render')}.mp4"
+    console.print(Panel(f"Material: [bold]{concept.get('title')}[/bold]", style="cyan"))
+    base, overlays = stage_material(concept, vt, settings, sim_path)
+    console.print(f"[green]Material done:[/green] {len(base)} base, {len(overlays)} overlay clips")
+
+
+@cli.command()
+@click.argument("concept_file", type=click.Path(exists=True))
+@click.option("--speaker", default=None, type=int, help="Override VOICEVOX speaker id")
+@click.option("--speed", default=None, type=float, help="Override narration speed")
+def narrate(concept_file: str, speaker: int | None, speed: float | None):
+    """Generate Japanese narration audio (VOICEVOX) for a concept."""
+    from pipeline.config import load_settings
+    from pipeline.planner import load_concept, normalize_concept
+    from pipeline.templating import load_video_template
+    from pipeline.workflow import stage_narration
+
+    concept = normalize_concept(load_concept(Path(concept_file)))
+    if speaker is not None:
+        concept["narration"]["speaker"] = speaker
+    if speed is not None:
+        concept["narration"]["speed"] = speed
+    settings = load_settings()
+    vt = load_video_template(concept["video_template"])
+    console.print(Panel(f"Narration: [bold]{concept.get('title')}[/bold]", style="cyan"))
+    path, segments = stage_narration(concept, vt, settings)
+    console.print(f"[green]Narration:[/green] {path} ({len(segments)} lines)")
+
+
+@cli.command()
+@click.argument("concept_file", type=click.Path(exists=True))
+@click.option("--preview", is_flag=True, help="Force stub mode (no Blender/HyperFrames/VOICEVOX)")
+def compose(concept_file: str, preview: bool):
+    """Build the final composited video (sim + material + narration + captions)."""
     from pipeline.workflow import run_full_pipeline
 
+    console.print(Panel(f"Composing: [bold]{Path(concept_file).name}[/bold]", style="green"))
+    final = run_full_pipeline(Path(concept_file), stages={"sim", "material", "narration", "compose"},
+                              preview=preview)
+    console.print(f"[green]Composed:[/green] {final}")
+
+
+@cli.command()
+@click.argument("concept_file", type=click.Path(exists=True))
+def thumbnail(concept_file: str):
+    """Generate a YouTube thumbnail PNG for a concept."""
+    from pipeline.config import load_settings
+    from pipeline.planner import load_concept, normalize_concept
+    from pipeline.templating import load_video_template
+    from pipeline.workflow import stage_thumbnail
+
+    concept = normalize_concept(load_concept(Path(concept_file)))
+    settings = load_settings()
+    vt = load_video_template(concept["video_template"])
+    slug = concept.get("slug", "render")
+    final = Path("outputs/final") / f"{slug}_final.mp4"
+    sim = Path("outputs/renders") / f"{slug}.mp4"
+    source = final if final.exists() else (sim if sim.exists() else None)
+    console.print(Panel(f"Thumbnail: [bold]{concept.get('title')}[/bold]", style="cyan"))
+    out = stage_thumbnail(concept, vt, settings, source_video=source)
+    console.print(f"[green]Thumbnail:[/green] {out}")
+
+
+@cli.command()
+@click.argument("concept_file", type=click.Path(exists=True))
+@click.option("--upload", is_flag=True, help="Upload to YouTube after rendering")
+@click.option("--preset", default=None, help="Override render preset")
+@click.option("--stages", default="all",
+              help="Comma list of stages to run: sim,material,narration,compose,thumb (or 'all')")
+@click.option("--preview", is_flag=True, help="Force stub mode (no heavy external deps)")
+@click.option("--privacy", default="private", type=click.Choice(["private", "unlisted", "public"]))
+def run(concept_file: str, upload: bool, preset: str | None, stages: str,
+        preview: bool, privacy: str):
+    """Full pipeline: sim + material + narration + compose + thumbnail (+ optional upload)."""
+    from pipeline.workflow import run_full_pipeline, ALL_STAGES
+
+    stage_set = set(ALL_STAGES) if stages.strip() == "all" else {
+        s.strip() for s in stages.split(",") if s.strip()
+    }
     concept_path = Path(concept_file)
     console.print(Panel(f"Running full pipeline: [bold]{concept_path.name}[/bold]", style="green"))
-    final = run_full_pipeline(concept_path, upload=upload, render_preset=preset)
+    final = run_full_pipeline(concept_path, upload=upload, render_preset=preset,
+                              stages=stage_set, privacy=privacy, preview=preview)
     console.print(f"[green]Complete:[/green] {final}")
 
 
 @cli.command()
 @click.argument("video_file", type=click.Path(exists=True))
 @click.option("--concept", default=None, help="Concept YAML for metadata")
+@click.option("--thumbnail", "thumbnail_file", default=None, type=click.Path(exists=True),
+              help="Thumbnail PNG to set on the uploaded video")
 @click.option("--privacy", default="private", type=click.Choice(["private", "unlisted", "public"]))
-def upload(video_file: str, concept: str | None, privacy: str):
+def upload(video_file: str, concept: str | None, thumbnail_file: str | None, privacy: str):
     """Upload a video to YouTube."""
     from pipeline.uploader import upload_video
     from pipeline.planner import load_concept
@@ -75,7 +166,8 @@ def upload(video_file: str, concept: str | None, privacy: str):
     video_path = Path(video_file)
     concept_data = load_concept(Path(concept)) if concept else {"caption": video_path.stem}
     console.print(Panel(f"Uploading: [bold]{video_path.name}[/bold]", style="magenta"))
-    url = upload_video(video_path, concept_data, privacy)
+    url = upload_video(video_path, concept_data, privacy,
+                       thumbnail_path=Path(thumbnail_file) if thumbnail_file else None)
     console.print(f"[green]Uploaded:[/green] {url}")
 
 

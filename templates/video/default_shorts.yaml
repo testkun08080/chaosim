@@ -1,0 +1,45 @@
+name: default_shorts
+description: >
+  Intro title card -> Blender simulation footage with lower-third captions ->
+  outro CTA, narrated in Japanese (VOICEVOX) with optional background music.
+resolution: [1080, 1920]
+fps: 60
+
+brand:
+  bg_color: "#0a0a12"
+  accent: "#4fd1c5"
+  text_color: "#ffffff"
+
+narration:
+  speaker: 3            # VOICEVOX: ずんだもん(ノーマル)
+  speed: 1.0
+  pitch: 0.0
+  source: "default"    # templates/narration/<source>.txt.j2 when concept has no lines
+
+bgm:
+  mood_default: "ambient"
+  volume: 0.18
+
+thumbnail:
+  style: "bold_headline"
+  size: [1280, 720]
+
+# Segment graph. `duration: remainder` lets the sim fill the body; overlay
+# segments with `from: narration` become captions synced to the narration.
+segments:
+  - role: intro
+    template: intro_title
+    track: base
+    duration: 3.0
+  - role: sim
+    track: base
+    duration: remainder
+  - role: overlay
+    template: lower_third
+    track: overlay
+    transparent: true
+    from: narration
+  - role: outro
+    template: outro
+    track: base
+    duration: 4.0

@@ -1,0 +1,13 @@
+{% extends "_base.html.j2" %}
+{# Mid-roll label overlay (transparent). #}
+{% block style %}
+  .label { position: absolute; top: 140px; left: 60px;
+           background: {{ accent }}; color: #000; font-weight: 800;
+           font-size: 44px; padding: 18px 36px; border-radius: 12px; }
+{% endblock %}
+{% block body %}
+  <div class="label" id="label">{{ text }}</div>
+{% endblock %}
+{% block timeline %}
+    tl.from("#label", { x: -60, opacity: 0, duration: 0.4, ease: "power2.out" }, 0);
+{% endblock %}

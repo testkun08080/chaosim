@@ -1,0 +1,31 @@
+name: minimal
+description: "Simulation footage plus a short outro. No narration, no captions."
+resolution: [1080, 1920]
+fps: 60
+
+brand:
+  bg_color: "#000000"
+  accent: "#ffcc00"
+  text_color: "#ffffff"
+
+narration:
+  speaker: 3
+  speed: 1.0
+  enabled: false
+
+bgm:
+  mood_default: "ambient"
+  volume: 0.18
+
+thumbnail:
+  style: "vertical_cover"
+  size: [1080, 1920]
+
+segments:
+  - role: sim
+    track: base
+    duration: remainder
+  - role: outro
+    template: outro
+    track: base
+    duration: 3.0

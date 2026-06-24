@@ -9,7 +9,13 @@ from google_auth_oauthlib.flow import InstalledAppFlow
 from google.auth.transport.requests import Request
 import pickle
 
-SCOPES = ["https://www.googleapis.com/auth/youtube.upload"]
+# youtube.force-ssl is required for thumbnails().set(); upload alone is insufficient.
+# NOTE: if you previously authenticated with only youtube.upload, delete
+# config/youtube_token.pickle so the new scope takes effect on next auth.
+SCOPES = [
+    "https://www.googleapis.com/auth/youtube.upload",
+    "https://www.googleapis.com/auth/youtube.force-ssl",
+]
 TOKEN_PATH = "config/youtube_token.pickle"
 CLIENT_SECRET_PATH = os.environ.get("YOUTUBE_CLIENT_SECRET_PATH", "config/youtube_client_secret.json")
 
@@ -32,7 +38,22 @@ def get_authenticated_service():
     return build("youtube", "v3", credentials=creds)
 
 
-def upload_video(video_path: Path, concept: dict, privacy: str = "private") -> str:
+def set_thumbnail(youtube, video_id: str, thumbnail_path: Path) -> bool:
+    """Set a custom thumbnail. Returns False (without raising) on failure."""
+    try:
+        youtube.thumbnails().set(
+            videoId=video_id,
+            media_body=MediaFileUpload(str(thumbnail_path), mimetype="image/png"),
+        ).execute()
+        print(f"Thumbnail set: {thumbnail_path}")
+        return True
+    except Exception as exc:  # noqa: BLE001 — channels w/o verification can't set thumbnails.
+        print(f"Thumbnail upload skipped: {exc}")
+        return False
+
+
+def upload_video(video_path: Path, concept: dict, privacy: str = "private",
+                 thumbnail_path: Path | None = None) -> str:
     """Upload video to YouTube. Returns video URL."""
     youtube = get_authenticated_service()
 
@@ -60,4 +81,8 @@ def upload_video(video_path: Path, concept: dict, privacy: str = "private") -> s
 
     video_id = response["id"]
     print(f"Uploaded: https://youtube.com/shorts/{video_id}")
+
+    if thumbnail_path and Path(thumbnail_path).exists():
+        set_thumbnail(youtube, video_id, Path(thumbnail_path))
+
     return f"https://youtube.com/shorts/{video_id}"
