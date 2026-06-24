@@ -46,6 +46,21 @@ def hyperframes_available() -> bool:
         return False
 
 
+def _set_gsap_src(ctx: dict) -> None:
+    """Set ctx['gsap_src'] to a local or remote GSAP URL.
+
+    If GSAP is available locally (vendored in work_dir or from a package),
+    use a local path. Otherwise use the CDN. This avoids TLS failures in
+    sandboxes where jsdelivr is unreachable.
+    """
+    # Try .agents/skills/graphic-overlays/assets/vendor/gsap.min.js (from hyperframes skills)
+    local_gsap = Path(".agents/skills/graphic-overlays/assets/vendor/gsap.min.js")
+    if local_gsap.exists():
+        ctx["gsap_src"] = f"file://{local_gsap.resolve()}"
+    # Otherwise fall back to CDN (will fail gracefully in sandboxes with offline CDN)
+    # and the base template will output data-composition-id + data-duration for HyperFrames to infer timing
+
+
 def prepare_composition(html: str, work_dir: Path, assets: list[Path] | None = None) -> Path:
     """Write ``index.html`` (and copy any assets) into a composition directory."""
     work_dir = Path(work_dir)
@@ -111,6 +126,7 @@ def render_segment_from_template(template_name: str, concept: dict, settings: di
     ctx = build_context(concept, settings, segment_cfg, video_template)
     ctx["transparent"] = transparent
     duration = float((segment_cfg or {}).get("duration", 3.0) or 3.0)
+    _set_gsap_src(ctx)
 
     if not hyperframes_available():
         return _stub_segment(ctx, Path(output_path), duration, transparent)
@@ -130,6 +146,7 @@ def render_still_from_template(template_name: str, concept: dict, settings: dict
     """Render an HTML thumbnail template to a single PNG (or stub)."""
     ctx = build_context(concept, settings, segment_cfg, video_template)
     ctx["width"], ctx["height"] = size
+    _set_gsap_src(ctx)
 
     if not hyperframes_available():
         return _stub_still(ctx, Path(output_png), size)
