@@ -17,15 +17,11 @@ def setup_scene(params: dict):
     import bpy
     import sys
     sys.path.insert(0, str(__import__("pathlib").Path(__file__).parent.parent))
-    from utils import clear_scene, set_black_background, setup_camera
+    from utils import clear_scene, setup_studio, setup_camera
 
     clear_scene()
-    set_black_background()
+    setup_studio(style="dark", center=(0, 0, 0), scale=1.2, include_backdrop=True)
     setup_camera(location=(0, -15, 5), rotation_degrees=(80, 0, 0))
-
-    bpy.context.scene.world.use_nodes = True
-    bg = bpy.context.scene.world.node_tree.nodes["Background"]
-    bg.inputs["Color"].default_value = (0.01, 0.01, 0.05, 1)
 
 
 def run_simulation():

@@ -46,6 +46,63 @@ Rules:
 # Defaults filled in when a concept omits the newer fields (backward compatible).
 DEFAULT_VIDEO_TEMPLATE = "default_shorts"
 
+
+def build_local_concept(topic: str) -> dict:
+    """Build a ready-to-render concept without calling Claude.
+
+    Uses the lightweight domino scene so the full pipeline can be exercised
+    even when ANTHROPIC_API_KEY is unset.
+    """
+    import re
+    import unicodedata
+
+    slug_base = unicodedata.normalize("NFKD", topic).encode("ascii", "ignore").decode()
+    slug_base = re.sub(r"[^a-zA-Z0-9]+", "_", slug_base).strip("_").lower()
+    if not slug_base:
+        slug_base = "domino"
+    if slug_base.startswith("local_"):
+        slug = slug_base[:48]
+    else:
+        slug = f"local_{slug_base}"[:48]
+    return {
+        "title": f"{topic} — ドミノ連鎖",
+        "slug": slug,
+        "simulator": "blender",
+        "scene_script": "domino_chain",
+        "duration_sec": 6,
+        "description": f"{topic}を題材にした、短いカラフルドミノの連鎖シミュレーション。",
+        "hook": "最初のドミノが倒れた瞬間から連鎖が始まる",
+        "viral_angle": "短いドミノ連鎖は満足感が高く、ショート動画のフックとして使いやすい。",
+        "params": {
+            "domino_count": 12,
+            "spacing": 0.32,
+            "domino_height": 0.8,
+            "domino_width": 0.4,
+            "domino_depth": 0.1,
+            "curve_radius": 0,
+        },
+        "render_preset": "preview",
+        "music_mood": "upbeat",
+        "caption": f"{topic}のドミノ連鎖 #shorts #dominos #satisfying",
+        "hashtags": ["dominos", "chainreaction", "satisfying", "physics", "shorts"],
+        "video_template": DEFAULT_VIDEO_TEMPLATE,
+        "narration": {
+            "enabled": True,
+            "speaker": 3,
+            "speed": 1.05,
+            "lines": [
+                "最初のドミノを倒すと…",
+                "バタバタと連鎖が広がる！",
+                "物理の力って気持ちいい。",
+            ],
+        },
+        "thumbnail": {
+            "style": "vertical_cover",
+            "headline": "ドミノ連鎖",
+        },
+    }
+
+
 def generate_concept(topic: str, client: anthropic.Anthropic) -> dict:
     """Generate a video concept for the given topic using Claude."""
     prompt = f"""Generate a viral chaos simulation video concept for: "{topic}"
@@ -116,12 +173,10 @@ def normalize_concept(concept: dict) -> dict:
     narration.setdefault("source", tmpl_narr.get("source", "default"))
     concept["narration"] = narration
 
-    tmpl_thumb = video_template.get("thumbnail", {})
-    thumbnail = dict(concept.get("thumbnail") or {})
-    thumbnail.setdefault("style", tmpl_thumb.get("style", "bold_headline"))
-    thumbnail.setdefault("size", tmpl_thumb.get("size", [1280, 720]))
-    thumbnail.setdefault("headline", concept.get("title", ""))
-    concept["thumbnail"] = thumbnail
+    # Thumbnail orientation follows the selected video format. This also
+    # repairs older Shorts concepts that inherited a landscape thumbnail.
+    from pipeline.thumbnail import resolve_thumbnail_config
+    concept["thumbnail"] = resolve_thumbnail_config(concept, video_template)
 
     # Segment graph: concept overrides template, otherwise inherit the template's.
     if not concept.get("segments"):

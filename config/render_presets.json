@@ -1,0 +1,26 @@
+{
+  "preview": {
+    "samples": 32,
+    "resolution_percentage": 50,
+    "fps": 30,
+    "denoise": false
+  },
+  "medium": {
+    "samples": 128,
+    "resolution_percentage": 100,
+    "fps": 60,
+    "denoise": true
+  },
+  "high": {
+    "samples": 512,
+    "resolution_percentage": 100,
+    "fps": 60,
+    "denoise": true
+  },
+  "ultra": {
+    "samples": 2048,
+    "resolution_percentage": 100,
+    "fps": 60,
+    "denoise": true
+  }
+}

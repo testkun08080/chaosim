@@ -1,0 +1,36 @@
+title: colorful_domino — ドミノ連鎖
+slug: local_colorful_domino
+simulator: blender
+scene_script: domino_chain
+duration_sec: 6
+description: colorful_dominoを題材にした、短いカラフルドミノの連鎖シミュレーション。
+hook: 最初のドミノが倒れた瞬間から連鎖が始まる
+viral_angle: 短いドミノ連鎖は満足感が高く、ショート動画のフックとして使いやすい。
+params:
+  domino_count: 12
+  spacing: 0.32
+  domino_height: 0.8
+  domino_width: 0.4
+  domino_depth: 0.1
+  curve_radius: 0
+render_preset: preview
+music_mood: upbeat
+caption: 'colorful_dominoのドミノ連鎖 #shorts #dominos #satisfying'
+hashtags:
+- dominos
+- chainreaction
+- satisfying
+- physics
+- shorts
+video_template: default_shorts
+narration:
+  enabled: true
+  speaker: 3
+  speed: 1.05
+  lines:
+  - 最初のドミノを倒すと…
+  - バタバタと連鎖が広がる！
+  - 物理の力って気持ちいい。
+thumbnail:
+  style: bold_headline
+  headline: ドミノ連鎖

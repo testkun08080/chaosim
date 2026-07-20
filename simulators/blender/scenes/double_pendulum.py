@@ -20,11 +20,10 @@ sys.path.insert(0, str(__import__("pathlib").Path(__file__).parent.parent))
 
 def setup_scene(params: dict):
     import bpy
-    from utils import clear_scene, set_black_background, add_area_light, setup_camera
+    from utils import clear_scene, setup_studio, setup_camera
 
     clear_scene()
-    set_black_background()
-    add_area_light(location=(0, 0, 8), energy=500)
+    setup_studio(style="dark", center=(0, 0, 0), scale=1.0, include_backdrop=True)
     setup_camera(location=(0, -12, 0), rotation_degrees=(90, 0, 0))
 
 

@@ -16,11 +16,10 @@ def setup_scene(params: dict):
     import bpy
     import sys
     sys.path.insert(0, str(__import__("pathlib").Path(__file__).parent.parent))
-    from utils import clear_scene, set_black_background, add_area_light, setup_camera
+    from utils import clear_scene, setup_studio, setup_camera
 
     clear_scene()
-    set_black_background()
-    add_area_light(location=(2, 2, 5), energy=2000)
+    setup_studio(style="soft", center=(0, 0, 0), scale=0.7, include_backdrop=True)
     setup_camera(location=(0, -5, 3), rotation_degrees=(70, 0, 0))
 
     size = params.get("domain_size", 2.0)

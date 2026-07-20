@@ -79,8 +79,9 @@ def burn_caption_segments(video: Path, caption_segments: list[dict], out_path: P
 
 def mix_tracks(video: Path, narration: Path | None, bgm: Path | None, out_path: Path,
                total: float, narration_start: float = 0.0,
-               bgm_volume: float = 0.18, narration_volume: float = 1.0) -> Path:
-    """Mix narration (delayed) + BGM under the video; always yields an audio track."""
+               bgm_volume: float = 0.18, narration_volume: float = 1.0,
+               sfx_cues: list[dict] | None = None) -> Path:
+    """Mix narration + BGM + timed SFX under the video; always yields an audio track."""
     out_path = Path(out_path)
     inputs: list[str] = ["-i", str(video)]
     filters: list[str] = []
@@ -105,6 +106,23 @@ def mix_tracks(video: Path, narration: Path | None, bgm: Path | None, out_path: 
         idx += 1
         have_real = True
 
+    for cue in sfx_cues or []:
+        path = Path(cue["path"])
+        if not path.exists():
+            continue
+        start = float(cue.get("start", 0.0))
+        vol = float(cue.get("volume", 0.55))
+        inputs += ["-i", str(path)]
+        d = int(max(0.0, start) * 1000)
+        # apad+atrim keeps each one-shot from truncating the mix early.
+        filters.append(
+            f"[{idx}:a]volume={vol},adelay={d}|{d},"
+            f"apad=whole_dur={total},atrim=0:{total},asetpts=PTS-STARTPTS[a{idx}]"
+        )
+        labels.append(f"[a{idx}]")
+        idx += 1
+        have_real = True
+
     if not have_real:
         inputs += ["-f", "lavfi", "-t", f"{total}", "-i", "anullsrc=r=24000:cl=mono"]
         labels.append(f"{idx}:a")  # direct input ref (no brackets) for -map
@@ -113,7 +131,10 @@ def mix_tracks(video: Path, narration: Path | None, bgm: Path | None, out_path: 
     if len(labels) == 1:
         amap = labels[0]
     else:
-        filters.append("".join(labels) + f"amix=inputs={len(labels)}:duration=longest:normalize=0[aout]")
+        filters.append(
+            "".join(labels)
+            + f"amix=inputs={len(labels)}:duration=first:dropout_transition=0:normalize=0[aout]"
+        )
         amap = "[aout]"
 
     cmd = list(inputs)
@@ -132,7 +153,8 @@ def mix_tracks(video: Path, narration: Path | None, bgm: Path | None, out_path: 
 def compose(concept: dict, video_template: dict, base_segments: list[dict],
             overlay_segments: list[dict], narration_path: Path | None,
             narration_segments: list[dict], bgm_path: Path | None,
-            settings: dict, out_path: Path, work_dir: Path) -> Path:
+            settings: dict, out_path: Path, work_dir: Path,
+            sfx_cues: list[dict] | None = None) -> Path:
     """Full assembly: concat base -> overlays -> captions -> audio -> shorts format."""
     work_dir = Path(work_dir)
     work_dir.mkdir(parents=True, exist_ok=True)
@@ -140,6 +162,7 @@ def compose(concept: dict, video_template: dict, base_segments: list[dict],
     w, h = resolution[0], resolution[1]
     fps = video_template.get("fps", settings.get("video", {}).get("fps", 60))
     comp = settings.get("compositing", {})
+    tmpl_bgm = video_template.get("bgm") or {}
 
     # 1. Base track: concat intro/sim/outro in declared order.
     base_paths = [Path(s["path"]) for s in base_segments]
@@ -168,13 +191,15 @@ def compose(concept: dict, video_template: dict, base_segments: list[dict],
     captioned = burn_caption_segments(visual, caption_segments, work_dir / "captioned.mp4",
                                       style=comp.get("caption_style"))
 
-    # 4. Mix audio (narration + BGM) under the captioned video.
+    # 4. Mix audio (narration + BGM + SFX) under the captioned video.
     total = get_duration(captioned)
+    bgm_vol = float(tmpl_bgm.get("volume", comp.get("bgm_volume", 0.18)))
     composed = mix_tracks(
         captioned, narration_path, bgm_path, work_dir / "composed.mp4",
         total=total, narration_start=sim_start,
-        bgm_volume=comp.get("bgm_volume", 0.18),
+        bgm_volume=bgm_vol,
         narration_volume=comp.get("narration_volume", 1.0),
+        sfx_cues=sfx_cues,
     )
 
     # 5. Final Shorts-compatible encode.

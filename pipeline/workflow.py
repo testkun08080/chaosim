@@ -105,14 +105,28 @@ def stage_compose(concept: dict, video_template: dict, settings: dict,
                   base_segments: list[dict], overlay_segments: list[dict],
                   narration_path: Path | None, narration_segments: list[dict]) -> Path:
     print("\n=== [4/6] Compositing ===")
+    from pipeline.audio_assets import load_sim_events, resolve_bgm, resolve_sfx_cues
+
     slug = concept.get("slug", "render")
     FINAL_DIR.mkdir(parents=True, exist_ok=True)
     final = FINAL_DIR / f"{slug}_final.mp4"
-    bgm_path = _bgm_path(concept)
+
+    bgm_path = resolve_bgm(concept, video_template, settings)
+    if bgm_path:
+        print(f"  bgm: {bgm_path}")
+    else:
+        print("  bgm: (none)")
+
+    sim_events = load_sim_events(slug, RENDERS_DIR)
+    sfx_cues = resolve_sfx_cues(
+        concept, video_template, base_segments, sim_events=sim_events, settings=settings,
+    )
+    print(f"  sfx cues: {len(sfx_cues)} (sim_events={len(sim_events)})")
+
     return compose(
         concept, video_template, base_segments, overlay_segments,
         narration_path, narration_segments, bgm_path, settings,
-        out_path=final, work_dir=WORK_DIR / slug,
+        out_path=final, work_dir=WORK_DIR / slug, sfx_cues=sfx_cues,
     )
 
 
@@ -146,14 +160,6 @@ def _narration_lines(concept: dict, video_template: dict, settings: dict) -> lis
         return []
 
 
-def _bgm_path(concept: dict) -> Path | None:
-    bgm = concept.get("bgm")
-    if not bgm:
-        return None
-    p = Path(bgm)
-    return p if p.exists() else None
-
-
 # --- top-level orchestration ----------------------------------------------
 
 def run_full_pipeline(concept_path: Path, upload: bool = False,
@@ -170,6 +176,13 @@ def run_full_pipeline(concept_path: Path, upload: bool = False,
     slug = concept.get("slug", "render")
 
     print(f"\n=== Pipeline: {concept.get('title')} (template={concept['video_template']}) ===")
+    from pipeline.renderer import blender_available
+    from pipeline.hyperframes import hyperframes_available
+    from pipeline.narration import voicevox_available
+    print(f"  tools: blender={blender_available()} "
+          f"hyperframes={hyperframes_available()} "
+          f"voicevox={voicevox_available(settings)} "
+          f"stub={preview or os.environ.get('CHAOSIM_STUB')}")
 
     # 1. Simulation footage.
     sim_path = RENDERS_DIR / f"{slug}.mp4"

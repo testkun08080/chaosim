@@ -1,6 +1,8 @@
 """Blender render orchestration (with an ffmpeg placeholder fallback)."""
 
+import json
 import os
+import platform
 import shutil
 import subprocess
 from pathlib import Path
@@ -8,9 +10,20 @@ from pathlib import Path
 from pipeline.config import stub_mode
 from pipeline.ffmpeg_utils import drawtext_font_prefix, escape_drawtext, run_ffmpeg
 
+_MAC_BLENDER = "/Applications/Blender.app/Contents/MacOS/Blender"
+
 
 def get_blender_path() -> str:
-    return os.environ.get("BLENDER_PATH", "blender")
+    """Resolve Blender binary from env, PATH, or common macOS install location."""
+    custom = os.environ.get("BLENDER_PATH")
+    if custom:
+        return custom
+    which = shutil.which("blender")
+    if which:
+        return which
+    if platform.system() == "Darwin" and os.path.isfile(_MAC_BLENDER):
+        return _MAC_BLENDER
+    return "blender"
 
 
 def blender_available() -> bool:
@@ -33,17 +46,22 @@ def render_concept(concept: dict, concept_path: Path, output_dir: Path,
     output_path = output_dir / f"{slug}.mp4"
 
     if not blender_available():
+        print("Blender not available — writing ffmpeg stub footage")
         return _stub_render(concept, output_path)
 
     blender = get_blender_path()
     runner = Path(__file__).parent.parent / "simulators" / "blender" / "runner.py"
+
+    # Pass JSON so Blender's bundled Python does not need PyYAML installed.
+    concept_json = output_dir / f"{slug}_concept.json"
+    concept_json.write_text(json.dumps(concept, ensure_ascii=False, indent=2), encoding="utf-8")
 
     cmd = [
         blender,
         "--background",
         "--python", str(runner),
         "--",
-        str(concept_path.resolve()),
+        str(concept_json.resolve()),
         str(output_path.resolve()),
         preset or concept.get("render_preset", "medium"),
     ]
@@ -53,6 +71,8 @@ def render_concept(concept: dict, concept_path: Path, output_dir: Path,
 
     if result.returncode != 0:
         raise RuntimeError(f"Blender render failed with code {result.returncode}")
+    if not output_path.exists():
+        raise RuntimeError(f"Blender finished but output missing: {output_path}")
 
     return output_path
 

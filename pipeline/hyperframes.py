@@ -23,8 +23,22 @@ def get_hyperframes_cmd() -> list[str]:
     """Base command for invoking HyperFrames (override with HYPERFRAMES_PATH)."""
     custom = os.environ.get("HYPERFRAMES_PATH")
     if custom:
-        return shlex.split(custom)
-    return ["npx", "hyperframes"]
+        parts = shlex.split(custom)
+        # Resolve relative binaries like ./node_modules/.bin/hyperframes
+        if parts and not parts[0].startswith("-"):
+            candidate = Path(parts[0])
+            if not candidate.is_absolute():
+                candidate = (Path.cwd() / candidate).resolve()
+            if candidate.exists():
+                parts[0] = str(candidate)
+        return parts
+    local = Path("node_modules/.bin/hyperframes")
+    if local.exists():
+        return [str(local.resolve())]
+    which = shutil.which("hyperframes")
+    if which:
+        return [which]
+    return ["npx", "--yes", "hyperframes"]
 
 
 def hyperframes_available() -> bool:
@@ -35,13 +49,16 @@ def hyperframes_available() -> bool:
     if cmd[0] == "npx":
         if shutil.which("npx") is None:
             return False
-        probe = ["npx", "--no-install", "hyperframes", "--version"]
+        probe = cmd + ["--version"]
     else:
         if shutil.which(cmd[0]) is None and not os.path.isfile(cmd[0]):
             return False
         probe = cmd + ["--version"]
     try:
-        return subprocess.run(probe, capture_output=True, timeout=120).returncode == 0
+        env = os.environ.copy()
+        # Avoid npm's noisy unknown-config warnings breaking parsers.
+        result = subprocess.run(probe, capture_output=True, timeout=120, env=env)
+        return result.returncode == 0
     except (subprocess.TimeoutExpired, OSError):
         return False
 
@@ -129,8 +146,10 @@ def render_segment_from_template(template_name: str, concept: dict, settings: di
     _set_gsap_src(ctx)
 
     if not hyperframes_available():
+        print(f"  HyperFrames unavailable — stubbing segment '{template_name}'")
         return _stub_segment(ctx, Path(output_path), duration, transparent)
 
+    print(f"  HyperFrames rendering '{template_name}' -> {output_path}")
     output_path = Path(output_path)
     work_dir = output_path.parent / f"_work_{output_path.stem}"
     html = render_to_file("hyperframes", template_name, ctx, work_dir / "index.html").read_text()

@@ -4,4 +4,5 @@ AVAILABLE_SCENES = [
     "sand_collapse",
     "lorenz_attractor",
     "domino_chain",
+    "paper_to_cloth",
 ]

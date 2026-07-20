@@ -24,19 +24,27 @@ def cli():
 @cli.command()
 @click.option("--topic", required=True, help="Topic or simulation type to generate a concept for")
 @click.option("--output-dir", default="concepts/generated", help="Output directory for concept YAML")
-def plan(topic: str, output_dir: str):
-    """Generate a video concept using Claude AI."""
-    import anthropic
+@click.option("--local", "local_mode", is_flag=True,
+              help="Skip Claude API and write a ready-to-render local concept (domino chain)")
+def plan(topic: str, output_dir: str, local_mode: bool):
+    """Generate a video concept using Claude AI (or a local template)."""
     import os
-    from pipeline.planner import generate_concept, save_concept
+    from pipeline.planner import generate_concept, save_concept, build_local_concept
 
     console.print(Panel(f"Generating concept for: [bold]{topic}[/bold]", style="cyan"))
-    client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
-    concept = generate_concept(topic, client)
+    if local_mode or not os.environ.get("ANTHROPIC_API_KEY"):
+        if not local_mode:
+            console.print("[yellow]ANTHROPIC_API_KEY missing — using local concept template[/yellow]")
+        concept = build_local_concept(topic)
+    else:
+        import anthropic
+        client = anthropic.Anthropic(api_key=os.environ["ANTHROPIC_API_KEY"])
+        concept = generate_concept(topic, client)
     path = save_concept(concept, Path(output_dir))
     console.print(f"[green]Concept saved:[/green] {path}")
     console.print(f"[bold]Title:[/bold] {concept.get('title')}")
     console.print(f"[bold]Hook:[/bold] {concept.get('hook')}")
+    console.print(f"[bold]Scene:[/bold] {concept.get('scene_script')}")
 
 
 @cli.command()

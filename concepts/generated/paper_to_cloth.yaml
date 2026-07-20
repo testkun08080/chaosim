@@ -1,0 +1,36 @@
+title: 紙が布になるまで — 面数デモ
+slug: paper_to_cloth
+simulator: blender
+scene_script: paper_to_cloth
+duration_sec: 24
+description: >
+  棒に吊るしたシートをガラス球が押し、面数を 16→64→256→1024 と増やすと
+  硬い紙から柔らかい布へ変化する satisfying Cloth デモ。
+hook: 面数が増えるたびにシートの動きが布っぽくなる
+viral_angle: Kawaken 風の「紙が布になる」面数比較は Shorts で定番の満足感ネタ。
+params:
+  face_counts: [16, 64, 256, 1024]
+  stage_duration_sec: 6
+  sphere_radius: 0.35
+  cloth_stiffness: 12
+  sheet_size: 1.6
+  backdrop_color: [0.42, 0.32, 0.24]
+  camera_lens: 24
+  camera_distance: 2.0
+  camera_height: 0.3
+  camera_pitch_deg: 86
+render_preset: preview
+music_mood: ambient
+caption: '面数を増やすと紙が布になる #shorts #cloth #blender #satisfying'
+hashtags:
+  - cloth
+  - blender
+  - satisfying
+  - physics
+  - shorts
+video_template: minimal
+narration:
+  enabled: false
+thumbnail:
+  style: bold_headline
+  headline: 紙→布？

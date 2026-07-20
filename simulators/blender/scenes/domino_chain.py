@@ -18,12 +18,11 @@ def setup_scene(params: dict):
     import math
     import sys
     sys.path.insert(0, str(__import__("pathlib").Path(__file__).parent.parent))
-    from utils import clear_scene, set_black_background, add_area_light, setup_camera
+    from utils import clear_scene, setup_studio, setup_camera
 
     clear_scene()
-    set_black_background()
-    add_area_light(location=(0, 0, 10), energy=5000, size=5.0)
-    add_area_light(location=(5, -5, 5), energy=1000)
+    # Reusable product studio (key/fill/rim/top + cyclorama). Physics ground is separate.
+    setup_studio(style="product", center=(0, 0, 0), scale=1.4, include_backdrop=True)
     setup_camera(location=(0, -15, 8), rotation_degrees=(65, 0, 0))
 
     n = params.get("domino_count", 50)
@@ -41,7 +40,9 @@ def setup_scene(params: dict):
     ground.rigid_body.type = "PASSIVE"
     mat = bpy.data.materials.new("ground_mat")
     mat.use_nodes = True
-    mat.node_tree.nodes["Principled BSDF"].inputs["Base Color"].default_value = (0.05, 0.05, 0.05, 1)
+    bsdf = mat.node_tree.nodes["Principled BSDF"]
+    bsdf.inputs["Base Color"].default_value = (0.08, 0.08, 0.09, 1)
+    bsdf.inputs["Roughness"].default_value = 0.45
     ground.data.materials.append(mat)
 
     hue_step = 1.0 / n
@@ -97,5 +98,81 @@ def setup_scene(params: dict):
 def run_simulation():
     import bpy
     scene = bpy.context.scene
-    if scene.rigidbody_world:
-        scene.rigidbody_world.point_cache.frame_end = scene.frame_end
+    if not scene.rigidbody_world:
+        bpy.ops.rigidbody.world_add()
+    rbw = scene.rigidbody_world
+    cache = rbw.point_cache
+    cache.frame_start = scene.frame_start
+    cache.frame_end = scene.frame_end
+    # Bake so animation render has simulated rigid-body frames.
+    override = bpy.context.copy()
+    override["point_cache"] = cache
+    try:
+        with bpy.context.temp_override(**override):
+            bpy.ops.ptcache.bake(bake=True)
+    except Exception:
+        # Older Blender / context variants — fall back to bake_all.
+        bpy.ops.ptcache.bake_all(bake=True)
+
+
+def collect_impact_events(min_interval: float = 0.05, max_events: int = 20) -> list:
+    """Sample baked rigid-body motion and emit tip/impact times for SFX.
+
+    Uses each ``domino_*`` object's world-space up vector (rigid-body transforms
+    do not update ``rotation_euler``). Emits when tip angle first exceeds ~35°.
+    Times are seconds from frame_start.
+    """
+    import bpy
+    import math
+    from mathutils import Vector
+
+    scene = bpy.context.scene
+    fps = float(scene.render.fps) or 30.0
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+    dominos = sorted(
+        [obj for obj in bpy.data.objects if obj.name.startswith("domino_")],
+        key=lambda o: o.name,
+    )
+    if not dominos:
+        return []
+
+    tipped = set()
+    events = []
+    tip_angle = math.radians(35.0)
+    world_up = Vector((0.0, 0.0, 1.0))
+
+    for frame in range(scene.frame_start, scene.frame_end + 1):
+        scene.frame_set(frame)
+        depsgraph.update()
+        t = (frame - scene.frame_start) / fps
+        for obj in dominos:
+            if obj.name in tipped:
+                continue
+            ev = obj.evaluated_get(depsgraph)
+            local_up = ev.matrix_world.to_3x3() @ world_up
+            try:
+                angle = local_up.angle(world_up)
+            except ValueError:
+                continue
+            if angle > tip_angle:
+                tipped.add(obj.name)
+                events.append({"t": round(t, 3), "type": "impact", "object": obj.name})
+
+    # Thin densely clustered tips so clicks stay audible.
+    events.sort(key=lambda e: e["t"])
+    if len(events) >= 2 and (events[-1]["t"] - events[0]["t"]) < 1.0:
+        # Physics tipped nearly together — restagger for a readable cascade.
+        start = events[0]["t"]
+        step = max(min_interval, 1.2 / max(1, len(events) - 1))
+        events = [
+            {"t": round(start + i * step, 3), "type": "impact", "object": e["object"]}
+            for i, e in enumerate(events)
+        ]
+    thinned = []
+    for ev in events:
+        if thinned and (ev["t"] - thinned[-1]["t"]) < min_interval:
+            continue
+        thinned.append(ev)
+        if len(thinned) >= max_events:
+            break
+    return thinned

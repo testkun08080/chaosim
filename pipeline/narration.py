@@ -120,6 +120,10 @@ def synthesize_script(lines, speaker: int, out_path: Path, speed: float = 1.0,
         return out_path, []
 
     use_real = voicevox_available(settings)
+    if use_real:
+        print(f"  VOICEVOX available at {voicevox_url(settings)}")
+    else:
+        print("  VOICEVOX unavailable — synthesizing silent placeholder audio")
     parts: list[Path] = []
     segments: list[dict] = []
     cursor = 0.0
@@ -131,7 +135,8 @@ def synthesize_script(lines, speaker: int, out_path: Path, speed: float = 1.0,
         if use_real:
             try:
                 synthesize_line(line, speaker, part, speed=speed, pitch=pitch, settings=settings)
-            except requests.RequestException:
+            except requests.RequestException as exc:
+                print(f"  VOICEVOX failed on line {i}: {exc}; using silence")
                 _silent_wav(part, _estimate_seconds(line, settings))
         else:
             _silent_wav(part, _estimate_seconds(line, settings))

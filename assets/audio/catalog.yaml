@@ -1,0 +1,23 @@
+# Audio catalog for Chaosim.
+# SFX reference macOS system sounds (do not copy into the repo).
+# BGM lives under assets/audio/bgm/.
+
+system_sounds_dir: /System/Library/Sounds
+
+bgm:
+  upbeat: bgm/upbeat.mp3
+  ambient: bgm/ambient.mp3
+  ethereal: bgm/ethereal.mp3
+  calm: bgm/ambient.mp3
+  space: bgm/ethereal.mp3
+
+# Role aliases -> Apple sound stem (without .aiff)
+sfx_roles:
+  whoosh: Submarine
+  intro: Submarine
+  impact: Glass
+  click: Tink
+  sting: Hero
+  outro: Hero
+
+# Direct Apple sound names also resolve as themselves.

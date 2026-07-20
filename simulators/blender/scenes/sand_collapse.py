@@ -18,11 +18,10 @@ def setup_scene(params: dict):
     import random
     import sys
     sys.path.insert(0, str(__import__("pathlib").Path(__file__).parent.parent))
-    from utils import clear_scene, set_black_background, add_area_light, setup_camera
+    from utils import clear_scene, setup_studio, setup_camera
 
     clear_scene()
-    set_black_background()
-    add_area_light(location=(3, -3, 8), energy=3000)
+    setup_studio(style="soft", center=(0, 0, 0), scale=1.0, include_backdrop=True)
     setup_camera(location=(6, -6, 4), rotation_degrees=(70, 0, 45))
 
     n = params.get("particle_count", 2000)

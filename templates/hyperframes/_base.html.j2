@@ -12,18 +12,32 @@
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   html, body {
-    width: {{ width }}px; height: {{ height }}px; overflow: hidden;
+    margin: 0; width: {{ width }}px; height: {{ height }}px; overflow: hidden;
     background: {{ 'transparent' if transparent else bg_color }};
     color: {{ text_color }};
     font-family: 'Noto Sans JP', 'Hiragino Kaku Gothic ProN', 'Yu Gothic', sans-serif;
   }
-  #scene { width: 100%; height: 100%; position: relative; }
+  #scene {
+    position: relative;
+    width: {{ width }}px; height: {{ height }}px;
+    overflow: hidden;
+  }
+  .clip { position: absolute; inset: 0; }
   {% block style %}{% endblock %}
 </style>
 </head>
 <body>
-  <div id="scene" data-composition-id="main" data-duration="{{ '%.3f' | format(duration | default(3.0) | float) }}">
-    {% block body %}{% endblock %}
+  <div id="scene"
+       data-composition-id="main"
+       data-start="0"
+       data-width="{{ width }}"
+       data-height="{{ height }}"
+       data-duration="{{ '%.3f' | format(duration | default(3.0) | float) }}">
+    <section class="clip" data-start="0"
+             data-duration="{{ '%.3f' | format(duration | default(3.0) | float) }}"
+             data-track-index="1">
+      {% block body %}{% endblock %}
+    </section>
   </div>
   <script>
     window.__timelines = window.__timelines || {};

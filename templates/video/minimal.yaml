@@ -17,6 +17,9 @@ bgm:
   mood_default: "ambient"
   volume: 0.18
 
+sfx:
+  enabled: false
+
 thumbnail:
   style: "vertical_cover"
   size: [1080, 1920]

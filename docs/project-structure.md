@@ -26,6 +26,9 @@ chaosim/
 │   └── blender/
 │       ├── runner.py            # Blender 内で実行されるエントリポイント
 │       ├── utils.py             # カメラ・ライト・シーンのユーティリティ
+│       ├── addons/              # インタラクティブ用アドオン (Git 管理)
+│       │   ├── chaosim_scene_tools/   # レンダープリセット・Shorts 設定
+│       │   └── lookdev_material_tool/ # LookDev マテリアル切替
 │       └── scenes/              # シミュレーション種別ごとのスクリプト
 │           ├── double_pendulum.py
 │           ├── fluid_ink.py
@@ -39,7 +42,8 @@ chaosim/
 │
 ├── scripts/
 │   ├── chaosim.py               # メイン CLI (plan / render / run / upload)
-│   └── blender_bootstrap.py     # Blender 環境の初期セットアップ
+│   ├── blender_bootstrap.py     # Blender 環境の初期セットアップ
+│   └── install_blender_addons.py # アドオンを symlink インストール
 │
 ├── outputs/                     # gitignore 済み・生成物の置き場
 │   ├── renders/                 # Blender が出力した生の動画
@@ -80,6 +84,15 @@ workflow.py  →  上記を順番に呼び出すだけ
 ### simulators/blender/ — Blender レイヤー
 Blender の Python 環境内で動くスクリプト群。  
 `runner.py` が YAML を読んで対応する `scenes/*.py` を動的にロードする。
+
+**2 種類の Python スクリプト:**
+
+| 種類 | パス | 実行 |
+|------|------|------|
+| バッチ（パイプライン） | `scenes/*.py` | `runner.py` 経由・GUI なし |
+| アドオン（手作業ツール） | `addons/*/` | Blender 内サイドバー UI |
+
+アドオン開発の詳細は [blender-addon-development.md](./blender-addon-development.md) を参照。
 
 各 `scenes/*.py` は必ず 2 つの関数を実装する：
 

@@ -48,6 +48,8 @@ narration:
 compositing:
   bgm_volume: 0.18
   narration_volume: 1.0
+  sfx_volume: 0.55
+  system_sounds_dir: /System/Library/Sounds
 
 thumbnail:
   size: [1280, 720]

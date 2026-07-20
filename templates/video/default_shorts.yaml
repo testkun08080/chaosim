@@ -20,9 +20,23 @@ bgm:
   mood_default: "ambient"
   volume: 0.18
 
+sfx:
+  enabled: true
+  volume: 0.55
+  source: system   # macOS /System/Library/Sounds
+  cues:
+    - at: intro_start
+      sound: Submarine
+    - at: sim_start
+      sound: Glass
+    - at: outro_start
+      sound: Hero
+  scene_event_sound: Tink
+  scene_events: true
+
 thumbnail:
-  style: "bold_headline"
-  size: [1280, 720]
+  style: "vertical_cover"
+  size: [1080, 1920]
 
 # Segment graph. `duration: remainder` lets the sim fill the body; overlay
 # segments with `from: narration` become captions synced to the narration.
