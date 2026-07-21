@@ -1,0 +1,118 @@
+title: 面数で変わる布 — Cloth by Faces
+slug: cloth_by_faces
+simulator: blender
+scene_script: cloth_drop_faces
+duration_sec: 20
+description: >
+  穴の空いた木箱の上に、金色のメタリックなシートを落とす。メッシュの面数を
+  16 → 64 → 256 → 1024 と増やすと、同じ物理でもカクカクした金属板から
+  ヌルッと垂れ込む布へ変化する。空を背景に、中央の大きな数字で面数を見せる。
+  参考: Kawaken_3DCG "Cloth Simulation by different Faces" の模倣。
+hook: 面数16のカクカクした金属シートが、面数を上げるほど布のように垂れ込む
+viral_angle: >
+  「面数を増やすと布になる」比較は 3DCG クラスタで鉄板の満足感ネタ。
+  中央の大きな数字と金×空の映える絵で、違いが一目で分かり完走されやすい。
+
+params:
+  # --- 段階（比較の主役） ---
+  face_counts: [16, 64, 256, 1024]
+  stage_duration_sec: 5              # 4段 × 5s = 20s
+
+  # --- 布（クロス）：柔らかく重く垂らして浅い穴にプールさせる ---
+  cloth_stiffness: 2.0               # 下げるほど柔らかい
+  cloth_mass: 0.5                    # 上げるほど重く垂れる
+  cloth_bending: 1.2                 # 曲げ剛性（低いとフニャフニャ）
+  cloth_quality: 18                  # ソルバのサブステップ（貫通防止）
+  collision_quality: 12              # 衝突サブステップ（貫通防止）
+  sheet_size: 1.9
+  drop_height: 0.3                   # 低めから落として早く着地→垂れた状態を長く見せる
+
+  # --- 金メタリック（PBR） ---
+  gold_color: [1.0, 0.62, 0.13]
+  gold_roughness: 0.32
+  fabric_scale: 190                  # 布の微細ノーマルの細かさ
+  fabric_bump: 0.06
+
+  # --- 木箱（穴あきペデスタル・プロシージャル木目） ---
+  box_size: 2.2
+  box_height: 1.4
+  hole_size: 0.85                    # 小さめの穴＝縁で布を確実に受け止め、全面数で沈まず垂れる
+  hole_depth: 0.9                    # 底あり（安全網）。縁で受かるので沈まない
+  wood_color: [0.36, 0.22, 0.11]
+  wood_roughness: 0.5
+
+  # --- 環境（HDRI 背景）・カラマネ ---
+  environment: hdri
+  world_hdri: assets/hdri/kloppenheim_06_puresky_1k.hdr   # 青空+雲
+  world_strength: 1.0
+  hdri_rotation_deg: 0
+  view_transform: AgX
+  exposure: -0.3
+
+  # --- カメラ ---
+  camera_lens: 30
+  camera_distance: 3.0
+  camera_height: 1.8
+  camera_pitch_deg: 60               # 90=水平, 小さいほど見下ろし
+
+  # 数字（面数ラベル）はコンポジットで合成する（label_in_scene: true で3D焼き込みも可）
+
+render_preset: high                  # Phase 1通過済み → 本番画質（フル解像度）
+music_mood: ambient
+caption: '面数を増やすと金属板が布になる #shorts #cloth #blender #satisfying'
+hashtags:
+  - cloth
+  - blender
+  - satisfying
+  - physics
+  - shorts
+video_template: minimal              # まずは素材＋アウトロのみ（音・字幕は後段）
+
+# コンポジット構成：sim映像の上に、各ステージの面数カウントをHyperFrames透過
+# オーバーレイで合成（4段 × 5s = 0/5/10/15s）。最後に短いアウトロ。
+segments:
+  - role: sim
+    track: base
+    duration: remainder
+  - role: face_16
+    track: overlay
+    template: face_count
+    text: "16"
+    label: FACES
+    start: 0
+    duration: 5
+    transparent: true
+  - role: face_64
+    track: overlay
+    template: face_count
+    text: "64"
+    label: FACES
+    start: 5
+    duration: 5
+    transparent: true
+  - role: face_256
+    track: overlay
+    template: face_count
+    text: "256"
+    label: FACES
+    start: 10
+    duration: 5
+    transparent: true
+  - role: face_1024
+    track: overlay
+    template: face_count
+    text: "1024"
+    label: FACES
+    start: 15
+    duration: 5
+    transparent: true
+  - role: outro
+    template: outro
+    track: base
+    duration: 3.0
+
+narration:
+  enabled: false
+thumbnail:
+  style: bold_headline
+  headline: 面数で布になる

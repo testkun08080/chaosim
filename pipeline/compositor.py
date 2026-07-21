@@ -38,9 +38,16 @@ def overlay_segment(base: Path, overlay: Path, out_path: Path, start: float,
                     x: str = "0", y: str = "0") -> Path:
     """Overlay a (transparent) material clip onto the base starting at ``start``."""
     out_path = Path(out_path)
+    # VP9/webm alpha (ALPHA_MODE=1) is only decoded when we force the libvpx-vp9
+    # decoder; ffmpeg's default vp9 decoder drops the alpha plane, which makes the
+    # overlay opaque and blacks out the base. Force the decoder for webm overlays.
+    overlay_in: list[str] = []
+    if str(overlay).lower().endswith(".webm"):
+        overlay_in += ["-c:v", "libvpx-vp9"]
+    overlay_in += ["-itsoffset", f"{start}", "-i", str(overlay)]
     run_ffmpeg([
         "-i", str(base),
-        "-itsoffset", f"{start}", "-i", str(overlay),
+        *overlay_in,
         "-filter_complex", f"[0:v][1:v]overlay=x={x}:y={y}:eof_action=pass[v]",
         "-map", "[v]", "-c:v", "libx264", "-pix_fmt", "yuv420p",
         str(out_path),

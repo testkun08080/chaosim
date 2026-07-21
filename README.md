@@ -17,6 +17,8 @@ python scripts/chaosim.py run concepts/sample_001_double_pendulum.yaml
 
 | ドキュメント | 内容 |
 |---|---|
+| [docs/production-plan.md](docs/production-plan.md) | 制作ガイド（セットアップ・運用＋企画→スライス→展開→合成→投稿のフェーズ＆ゲート） |
+| [docs/media-pipeline-playbook.md](docs/media-pipeline-playbook.md) | 生成メディア自動化パイプラインの再利用可能な設計原則（プロジェクト非依存） |
+| [docs/sfx-design.md](docs/sfx-design.md) | 効果音の設計・合成提案（現状の課題と改善案） |
 | [docs/project-structure.md](docs/project-structure.md) | ディレクトリ構成と各モジュールの役割 |
-| [docs/workflow.md](docs/workflow.md) | セットアップ手順・使い方・拡張方法 |
 | [docs/concepts-guide.md](docs/concepts-guide.md) | サンプル企画 5 本の解説と YAML フィールド一覧 |

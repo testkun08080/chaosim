@@ -5,4 +5,5 @@ AVAILABLE_SCENES = [
     "lorenz_attractor",
     "domino_chain",
     "paper_to_cloth",
+    "cloth_drop_faces",
 ]

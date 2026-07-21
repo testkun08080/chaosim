@@ -106,10 +106,15 @@ def render_composition(work_dir: Path, output_path: Path, width: int = 1080,
     ]
     if transparent:
         cmd += ["--format", "webm"]
-    if (width, height) == (1080, 1920):
-        cmd += ["--resolution", "portrait"]
-    elif (width, height) == (1920, 1080):
-        cmd += ["--resolution", "landscape"]
+    # NOTE: HyperFrames rejects an output --resolution preset combined with alpha
+    # output (webm/mov/png-sequence): the alpha path renders at composition
+    # resolution only. Our compositions already declare data-width/height, so for
+    # transparent overlays we omit the preset and let it render at native size.
+    if not transparent:
+        if (width, height) == (1080, 1920):
+            cmd += ["--resolution", "portrait"]
+        elif (width, height) == (1920, 1080):
+            cmd += ["--resolution", "landscape"]
     result = subprocess.run(cmd)
     if result.returncode != 0:
         raise RuntimeError(f"HyperFrames render failed ({result.returncode}) for {work_dir}")

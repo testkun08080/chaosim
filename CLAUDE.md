@@ -18,6 +18,12 @@ python scripts/chaosim.py run concepts/sample_001_double_pendulum.yaml
 python scripts/chaosim.py upload outputs/renders/double_pendulum_001.mp4
 ```
 
+## Production Workflow (phased)
+Videos are produced through gated phases — see `docs/production-plan.md`:
+concept → **vertical slice** (low-res few-frame camera/material test, must pass the gate before
+any `medium`/`high`/`ultra` render) → variation expansion → composite → finish/upload.
+SFX design and the compositing sound proposal live in `docs/sfx-design.md`.
+
 ## Architecture
 - `pipeline/` — orchestration logic (planner, renderer, uploader)
 - `simulators/blender/scenes/` — one Python file per simulation type, runs inside Blender

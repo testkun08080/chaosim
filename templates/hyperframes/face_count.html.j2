@@ -1,0 +1,42 @@
+{% extends "_base.html.j2" %}
+{# Center-top face-count number, transparent overlay (one per stage).
+   Static number (no count-up); subtle pop-in so stage changes read clearly.
+   Rendered as a transparent webm and composited over the sim by the pipeline. #}
+{% block style %}
+  .facewrap {
+    position: absolute;
+    top: {{ label_top | default(150) }}px;
+    left: 0; right: 0;
+    display: flex; flex-direction: column; align-items: center;
+    text-align: center;
+  }
+  .facenum {
+    font-size: {{ label_size | default(300) }}px;
+    font-weight: 900;
+    line-height: 0.9;
+    color: {{ text_color | default('#ffffff') }};
+    -webkit-text-stroke: {{ stroke_w | default(10) }}px rgba(20,20,24,0.92);
+    paint-order: stroke fill;
+    text-shadow: 0 8px 34px rgba(0,0,0,0.45);
+    letter-spacing: -0.02em;
+  }
+  .facelbl {
+    margin-top: 8px;
+    font-size: {{ label_lbl_size | default(66) }}px;
+    font-weight: 800;
+    letter-spacing: 0.35em;
+    padding-left: 0.35em;
+    color: {{ accent | default('#ffcc00') }};
+    -webkit-text-stroke: 3px rgba(20,20,24,0.85);
+    paint-order: stroke fill;
+  }
+{% endblock %}
+{% block body %}
+  <div class="facewrap" id="facewrap">
+    <div class="facenum" id="facenum">{{ text }}</div>
+    <div class="facelbl" id="facelbl">{{ label | default('FACES') }}</div>
+  </div>
+{% endblock %}
+{% block timeline %}
+    tl.from("#facewrap", { scale: 0.6, opacity: 0, duration: 0.45, ease: "back.out(1.7)" }, 0);
+{% endblock %}
