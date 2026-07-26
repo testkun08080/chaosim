@@ -85,12 +85,24 @@ import shutil
 
 scene = bpy.context.scene
 # Resolve a working engine. Blender 5.x may expose EEVEE as BLENDER_EEVEE.
-for candidate in ("BLENDER_EEVEE", "BLENDER_EEVEE_NEXT", "CYCLES"):
+# CHAOSIM_RENDER_ENGINE pins the engine. Headless CI has no GPU/GL context, so
+# EEVEE there either aborts or emits black frames that still mux successfully —
+# set this to CYCLES on a hosted runner. Unset keeps the autodetect order.
+forced_engine = os.environ.get("CHAOSIM_RENDER_ENGINE", "").strip().upper()
+if forced_engine:
     try:
-        scene.render.engine = candidate
-        break
+        scene.render.engine = forced_engine
     except TypeError:
-        continue
+        print(f"ERROR: CHAOSIM_RENDER_ENGINE={forced_engine!r} is not available "
+              f"in this Blender build")
+        sys.exit(1)
+else:
+    for candidate in ("BLENDER_EEVEE", "BLENDER_EEVEE_NEXT", "CYCLES"):
+        try:
+            scene.render.engine = candidate
+            break
+        except TypeError:
+            continue
 
 scene.render.resolution_x = 1080
 scene.render.resolution_y = 1920
@@ -116,6 +128,16 @@ scene.render.image_settings.color_mode = "RGB"
 scene.render.filepath = str(frames_dir / "frame_")
 scene.frame_start = 1
 scene.frame_end = max(1, int(duration_sec * scene.render.fps))
+
+# CI cost guardrail: cap the frame count so a long concept cannot burn the whole
+# job budget before failing. Staged scenes (render_staged) recompute frame_end
+# themselves below and are not covered by this cap.
+max_frames = int(os.environ.get("CHAOSIM_MAX_FRAMES", "0") or 0)
+if max_frames > 0 and scene.frame_end > max_frames:
+    print(f"CHAOSIM_MAX_FRAMES={max_frames}: truncating frame_end "
+          f"{scene.frame_end} -> {max_frames}")
+    scene.frame_end = max_frames
+
 print(f"Engine={scene.render.engine} frames={scene.frame_start}-{scene.frame_end} "
       f"res%={scene.render.resolution_percentage} fps={scene.render.fps}")
 

@@ -1,0 +1,383 @@
+name: sim
+
+# Stage 1 of the pipeline: run the Blender simulation and render footage.
+# Concept authoring stays local — this workflow takes an already-committed
+# concept YAML and produces outputs/renders/<slug>.mp4 as a downloadable
+# artifact. See docs/ci.md for the artifact contract.
+
+on:
+  workflow_call:
+    inputs:
+      concept:
+        description: Path to the concept YAML, relative to the repo root.
+        type: string
+        required: true
+      preset:
+        description: Render preset (preview | medium | high | ultra).
+        type: string
+        required: false
+        default: preview
+      engine:
+        description: Blender render engine (CYCLES | BLENDER_EEVEE | auto).
+        type: string
+        required: false
+        default: CYCLES
+      max_frames:
+        description: Hard cap on rendered frames (0 = uncapped).
+        type: number
+        required: false
+        default: 900
+      allow_expensive:
+        description: Permit the high/ultra presets. They do not fit the 6h job cap.
+        type: boolean
+        required: false
+        default: false
+      runner:
+        description: runs-on label.
+        type: string
+        required: false
+        default: ubuntu-latest
+      blender_version:
+        description: Blender version to install.
+        type: string
+        required: false
+        default: '4.5.3'
+    outputs:
+      artifact-name:
+        description: Name of the uploaded simulation artifact.
+        value: ${{ jobs.render.outputs.artifact-name }}
+      slug:
+        description: Concept slug, i.e. the artifact's filename stem.
+        value: ${{ jobs.render.outputs.slug }}
+      video-path:
+        description: Path of the rendered mp4 inside the artifact.
+        value: ${{ jobs.render.outputs.video-path }}
+
+  # Duplicated on purpose: GitHub Actions does not support YAML anchors, so the
+  # two trigger blocks cannot share a definition. The duplication stops here —
+  # the `inputs` context is populated for workflow_dispatch and workflow_call
+  # alike, so the job body below never branches on the event type.
+  workflow_dispatch:
+    inputs:
+      concept:
+        description: Path to the concept YAML, relative to the repo root.
+        type: string
+        required: true
+        default: concepts/generated/quick_domino_chain.yaml
+      preset:
+        description: Render preset. Only `preview` reliably fits a hosted runner.
+        type: choice
+        required: true
+        default: preview
+        options: [preview, medium, high, ultra]
+      engine:
+        description: Render engine. EEVEE needs a GPU — expect black frames on CI.
+        type: choice
+        required: true
+        default: CYCLES
+        options: [CYCLES, BLENDER_EEVEE, auto]
+      max_frames:
+        description: Hard cap on rendered frames (0 = uncapped).
+        type: string
+        required: false
+        default: '900'
+      allow_expensive:
+        description: Permit high/ultra. Must be true to use those presets.
+        type: boolean
+        required: false
+        default: false
+      runner:
+        description: runs-on label.
+        type: string
+        required: false
+        default: ubuntu-latest
+      blender_version:
+        description: Blender version to install.
+        type: string
+        required: false
+        default: '4.5.3'
+
+# Serialise per concept+ref, but never cancel an in-flight render: at hosted
+# runner speeds a cancelled Cycles job has already burnt real minutes.
+concurrency:
+  group: sim-${{ github.workflow }}-${{ github.ref }}-${{ inputs.concept }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    # The implicit shell is `bash -e {0}` — no pipefail. Declaring bash gives
+    # `bash --noprofile --norc -eo pipefail {0}`, which the `| tee` in the
+    # render step needs so a Blender failure is not masked by tee's exit code.
+    shell: bash
+
+permissions:
+  contents: read
+
+jobs:
+  render:
+    name: sim (${{ inputs.preset }} / ${{ inputs.engine }})
+    runs-on: ${{ inputs.runner }}
+    # preview on a 4-core hosted runner: minutes to ~1h. Anything heavier gets
+    # a near-maximum budget; 330 stays under the 360-minute platform cap so the
+    # job's own timeout fires first and still uploads diagnostics.
+    timeout-minutes: ${{ inputs.preset == 'preview' && 120 || 330 }}
+
+    outputs:
+      artifact-name: ${{ steps.concept.outputs.artifact_name }}
+      slug: ${{ steps.concept.outputs.slug }}
+      video-path: ${{ steps.concept.outputs.video_path }}
+
+    env:
+      # These reach simulators/blender/runner.py for free: pipeline/renderer.py
+      # spawns Blender without an `env=` kwarg, so it inherits os.environ.
+      CHAOSIM_RENDER_ENGINE: ${{ inputs.engine == 'auto' && '' || inputs.engine }}
+      CHAOSIM_MAX_FRAMES: ${{ inputs.max_frames }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate inputs
+        env:
+          PRESET: ${{ inputs.preset }}
+          ENGINE: ${{ inputs.engine }}
+          ALLOW_EXPENSIVE: ${{ inputs.allow_expensive }}
+        run: |
+          set -euo pipefail
+          case "$PRESET" in
+            preview|medium|high|ultra) ;;
+            *) echo "::error::Unknown preset '$PRESET'"; exit 1 ;;
+          esac
+          case "$ENGINE" in
+            CYCLES|BLENDER_EEVEE|BLENDER_EEVEE_NEXT|auto) ;;
+            *) echo "::error::Unknown engine '$ENGINE'"; exit 1 ;;
+          esac
+          if [ "$ENGINE" != "CYCLES" ]; then
+            echo "::warning::engine=$ENGINE has no GPU/GL context on a hosted runner; EEVEE typically aborts or emits black frames. CYCLES is the supported CI engine."
+          fi
+          # Cost guardrail: high=512spp and ultra=2048spp at full 1080x1920/60fps
+          # (config/render_presets.json) cannot finish inside the 6h job cap on
+          # 4 CPU cores. Fail in seconds rather than at minute 360.
+          if [ "$PRESET" = "high" ] || [ "$PRESET" = "ultra" ]; then
+            if [ "$ALLOW_EXPENSIVE" != "true" ]; then
+              echo "::error::preset '$PRESET' is blocked on GitHub-hosted runners — it will exhaust the 6-hour job limit and fail after burning the full budget. Use 'preview', or re-run with allow_expensive=true if you accept that."
+              exit 1
+            fi
+            echo "::warning::preset '$PRESET' explicitly allowed; expect a timeout."
+          fi
+
+      - name: Set up chaosim toolchain
+        uses: ./.github/actions/setup-chaosim
+        with:
+          blender: 'true'
+          blender-version: ${{ inputs.blender_version }}
+          node: 'false'
+
+      - name: Resolve concept metadata
+        id: concept
+        env:
+          CONCEPT: ${{ inputs.concept }}
+        run: |
+          set -euo pipefail
+          test -f "$CONCEPT" || { echo "::error::Concept not found: $CONCEPT"; exit 1; }
+          python - >> "$GITHUB_OUTPUT" <<'PY'
+          import os, re, sys, yaml
+          from pathlib import Path
+
+          path = Path(os.environ["CONCEPT"])
+          concept = yaml.safe_load(path.read_text(encoding="utf-8")) or {}
+
+          # pipeline/renderer.py falls back to concept.get("slug", "render") and
+          # normalize_concept never fills slug in, so a missing slug would
+          # silently produce outputs/renders/render.mp4 under a mismatched
+          # artifact name. Fail instead.
+          slug = str(concept.get("slug") or "").strip()
+          if not slug:
+              print(f"::error::{path} has no 'slug' field", file=sys.stderr)
+              raise SystemExit(1)
+          if not re.fullmatch(r"[A-Za-z0-9][A-Za-z0-9._-]*", slug):
+              print(f"::error::unsafe slug {slug!r}", file=sys.stderr)
+              raise SystemExit(1)
+
+          params = concept.get("params") or {}
+          print(f"slug={slug}")
+          print(f"artifact_name=sim-{slug}")
+          print(f"video_path=outputs/renders/{slug}.mp4")
+          print(f"duration_sec={int(concept.get('duration_sec', 15) or 15)}")
+          print(f"staged={'true' if params.get('face_counts') else 'false'}")
+          PY
+
+      - name: Preflight
+        env:
+          STAGED: ${{ steps.concept.outputs.staged }}
+        run: |
+          set -euo pipefail
+          # A misconfigured job must not go green on stub footage. Every
+          # *_available() helper returns False rather than raising, so a stray
+          # CHAOSIM_STUB would be invisible in the logs.
+          if [ -n "${CHAOSIM_STUB:-}" ]; then
+            echo "::error::CHAOSIM_STUB is set; this job would emit testsrc2 stub footage"
+            exit 1
+          fi
+          command -v blender >/dev/null || { echo "::error::blender not on PATH"; exit 1; }
+          blender --version | head -n 1
+          if [ "$STAGED" = "true" ]; then
+            echo "::warning::staged scene — render_staged() owns its own frame loop, so CHAOSIM_MAX_FRAMES does not apply. Watch the timeout."
+          fi
+          mkdir -p outputs/renders
+
+      - name: Render simulation
+        env:
+          CONCEPT: ${{ inputs.concept }}
+          PRESET: ${{ inputs.preset }}
+          SLUG: ${{ steps.concept.outputs.slug }}
+        run: |
+          set -euo pipefail
+          # --preset is passed explicitly on purpose: renderer.py otherwise falls
+          # back to concept["render_preset"], and every committed concept outside
+          # concepts/generated/ declares `high` at 20-30s — hours of CPU Cycles.
+          python scripts/chaosim.py render "$CONCEPT" --preset "$PRESET" \
+            2>&1 | tee "outputs/renders/${SLUG}_render.log"
+
+      - name: Verify Blender actually rendered
+        id: verify
+        env:
+          SLUG: ${{ steps.concept.outputs.slug }}
+          PRESET: ${{ inputs.preset }}
+          ENGINE: ${{ inputs.engine }}
+        run: |
+          set -euo pipefail
+          d=outputs/renders
+          mp4="$d/${SLUG}.mp4"
+          log="$d/${SLUG}_render.log"
+
+          # (1) Strongest signal: renderer.py writes <slug>_concept.json only
+          # after the `if not blender_available(): return _stub_render(...)`
+          # early return, so the stub path can never produce it.
+          test -f "$d/${SLUG}_concept.json" || {
+            echo "::error::${SLUG}_concept.json missing — the ffmpeg stub ran, not Blender"
+            exit 1; }
+
+          # (2) Only simulators/blender/runner.py writes <slug>_events.json, so
+          # this proves the in-Blender script completed, not merely that the
+          # subprocess was spawned.
+          test -f "$d/${SLUG}_events.json" || {
+            echo "::error::${SLUG}_events.json missing — runner.py did not complete"
+            exit 1; }
+
+          # (3) Log sentinels.
+          if grep -q "Blender not available" "$log"; then
+            echo "::error::renderer.py fell back to stub footage"; exit 1
+          fi
+          engine_line=$(grep -m1 '^Engine=' "$log" || true)
+          [ -n "$engine_line" ] || { echo "::error::runner.py never printed Engine="; exit 1; }
+          echo "$engine_line"
+          if [ "$ENGINE" != "auto" ]; then
+            grep -q "^Engine=${ENGINE} " "$log" || {
+              echo "::error::expected Engine=${ENGINE}, got: $engine_line"; exit 1; }
+          fi
+
+          # (4) ffprobe sanity on the artifact itself.
+          test -f "$mp4" || { echo "::error::$mp4 missing"; exit 1; }
+          bytes=$(stat -c%s "$mp4")
+          [ "$bytes" -gt 20000 ] || { echo "::error::$mp4 is only ${bytes}B"; exit 1; }
+          probe() { ffprobe -v error -select_streams v:0 \
+            -show_entries "stream=$1" -of csv=p=0 "$mp4"; }
+          codec=$(probe codec_name)
+          w=$(probe width)
+          h=$(probe height)
+          frames=$(ffprobe -v error -count_frames -select_streams v:0 \
+            -show_entries stream=nb_read_frames -of csv=p=0 "$mp4")
+          duration=$(ffprobe -v error -show_entries format=duration \
+            -of csv=p=0 "$mp4" | cut -d. -f1)
+          echo "codec=$codec ${w}x${h} frames=$frames bytes=$bytes"
+          [ "$codec" = "h264" ] || { echo "::error::unexpected codec $codec"; exit 1; }
+          [ "${frames:-0}" -gt 1 ] || { echo "::error::only ${frames} frame(s) decoded"; exit 1; }
+          # preview = resolution_percentage 50 of 1080x1920. The stub always
+          # renders 1080x1920 testsrc2, so this also separates the two.
+          if [ "$PRESET" = "preview" ] && [ "${w}x${h}" != "540x960" ]; then
+            echo "::error::preview should be 540x960, got ${w}x${h}"; exit 1
+          fi
+          echo "frames=$frames" >> "$GITHUB_OUTPUT"
+          echo "resolution=${w}x${h}" >> "$GITHUB_OUTPUT"
+          echo "duration=$duration" >> "$GITHUB_OUTPUT"
+          echo "bytes=$bytes" >> "$GITHUB_OUTPUT"
+
+      - name: Build contact sheet
+        env:
+          SLUG: ${{ steps.concept.outputs.slug }}
+        run: |
+          set -euo pipefail
+          mp4="outputs/renders/${SLUG}.mp4"
+          out="outputs/renders/${SLUG}_contact.png"
+          # 6 evenly spaced frames tiled 3x2 — enough to judge camera framing,
+          # lighting and whether the sim broke, which is the Phase 1 (vertical
+          # slice) gate in docs/production-plan.md. Non-fatal: a missing contact
+          # sheet must not fail an otherwise good render.
+          frames=$(ffprobe -v error -count_frames -select_streams v:0 \
+            -show_entries stream=nb_read_frames -of csv=p=0 "$mp4")
+          # Plain `[ ... ] && step=1` would return non-zero when the test is
+          # false and `set -e` would kill the step.
+          step=$(( frames / 6 ))
+          if [ "$step" -lt 1 ]; then step=1; fi
+          if ffmpeg -hide_banner -loglevel error -y -i "$mp4" \
+               -vf "select=not(mod(n\,${step})),scale=270:-1,tile=3x2" \
+               -frames:v 1 "$out"; then
+            echo "contact sheet: $out"
+          else
+            echo "::warning::contact sheet generation failed"
+          fi
+
+      - name: Job summary
+        if: always()
+        env:
+          SLUG: ${{ steps.concept.outputs.slug }}
+          CONCEPT: ${{ inputs.concept }}
+          PRESET: ${{ inputs.preset }}
+          ENGINE: ${{ inputs.engine }}
+        run: |
+          set -euo pipefail
+          {
+            echo "## sim — \`${SLUG}\`"
+            echo ""
+            echo "| | |"
+            echo "|---|---|"
+            echo "| concept | \`${CONCEPT}\` |"
+            echo "| preset | \`${PRESET}\` |"
+            echo "| engine | \`${ENGINE}\` |"
+            echo "| resolution | ${{ steps.verify.outputs.resolution || 'n/a' }} |"
+            echo "| frames | ${{ steps.verify.outputs.frames || 'n/a' }} |"
+            echo "| duration | ${{ steps.verify.outputs.duration || 'n/a' }}s |"
+            echo "| size | ${{ steps.verify.outputs.bytes || 'n/a' }} bytes |"
+            echo ""
+            echo "Download the **sim-${SLUG}** artifact below; the contact sheet"
+            echo "shows 6 evenly spaced frames for the Phase 1 look gate."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload simulation artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ steps.concept.outputs.artifact_name }}
+          # Explicit paths, never a directory glob: on a failed render the
+          # <slug>_frames/ PNG sequence survives runner.py's shutil.rmtree and
+          # would be gigabytes.
+          path: |
+            outputs/renders/${{ steps.concept.outputs.slug }}.mp4
+            outputs/renders/${{ steps.concept.outputs.slug }}_events.json
+            outputs/renders/${{ steps.concept.outputs.slug }}_concept.json
+            outputs/renders/${{ steps.concept.outputs.slug }}_contact.png
+            outputs/renders/${{ steps.concept.outputs.slug }}_render.log
+          if-no-files-found: error
+          retention-days: 7
+          compression-level: 0   # mp4/png are already compressed
+
+      - name: Upload failure diagnostics
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: sim-${{ steps.concept.outputs.slug }}-debug
+          path: |
+            outputs/renders/*.log
+            outputs/renders/*.json
+          if-no-files-found: ignore
+          retention-days: 3

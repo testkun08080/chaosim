@@ -1,0 +1,215 @@
+name: Setup chaosim
+description: >
+  Provision the chaosim toolchain: Python + deps, ffmpeg, CJK fonts, and
+  optionally Blender and/or Node. Every component is opt-in so a stage job only
+  pays for what it actually needs.
+
+inputs:
+  python-version:
+    description: Python version for the pipeline (pyproject requires >= 3.11).
+    required: false
+    default: '3.11'
+  python-deps:
+    description: Install requirements.txt ("true"/"false").
+    required: false
+    default: 'true'
+  ffmpeg:
+    description: Install ffmpeg + ffprobe ("true"/"false").
+    required: false
+    default: 'true'
+  fonts:
+    description: Install a CJK font for Japanese drawtext captions.
+    required: false
+    default: 'true'
+  blender:
+    description: Install Blender from the official tarball ("true"/"false").
+    required: false
+    default: 'false'
+  blender-version:
+    description: >
+      Exact Blender version, e.g. 4.5.3. If that patch release does not exist,
+      the newest patch in the same series is resolved automatically.
+    required: false
+    default: '4.5.3'
+  node:
+    description: Install Node (needed by the HyperFrames material stage).
+    required: false
+    default: 'false'
+  node-version:
+    description: Node version (package.json engines requires >= 22).
+    required: false
+    default: '22'
+  npm-ci:
+    description: Run `npm ci` from the committed package-lock.json.
+    required: false
+    default: 'false'
+
+outputs:
+  blender-path:
+    description: Absolute path to the Blender binary (empty when blender=false).
+    value: ${{ steps.blender-export.outputs.path }}
+  blender-version:
+    description: Blender version actually installed.
+    value: ${{ steps.blender-resolve.outputs.version }}
+
+runs:
+  using: composite
+  steps:
+    # --- Python ---------------------------------------------------------
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python-version }}
+        cache: pip
+        cache-dependency-path: requirements.txt
+
+    - name: Install Python dependencies
+      if: inputs.python-deps == 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        python -m pip install --upgrade pip
+        # NOTE: `pip install .` is broken in this repo — pyproject.toml declares
+        # the non-existent build backend "setuptools.backends.legacy:build" and
+        # scripts/ has no __init__.py. requirements.txt is the supported path;
+        # scripts/chaosim.py inserts the repo root onto sys.path itself.
+        pip install -r requirements.txt
+
+    # --- System packages ------------------------------------------------
+    - name: Install system packages
+      if: inputs.ffmpeg == 'true' || inputs.fonts == 'true' || inputs.blender == 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        pkgs=()
+        if [ "${{ inputs.ffmpeg }}" = "true" ]; then
+          # ffmpeg is a hard dependency of every chaosim path, including the
+          # stub renderer and the ffmpeg mux inside simulators/blender/runner.py.
+          # Do not assume the runner image ships it.
+          pkgs+=(ffmpeg)
+        fi
+        if [ "${{ inputs.fonts }}" = "true" ]; then
+          # Provides /usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc,
+          # a candidate in pipeline/ffmpeg_utils.py.
+          pkgs+=(fonts-noto-cjk)
+        fi
+        if [ "${{ inputs.blender }}" = "true" ]; then
+          # Blender links X11/GL at load time even under --background.
+          # libgl1-mesa-glx no longer exists on 24.04; libgl1 is the replacement.
+          pkgs+=(libx11-6 libxi6 libxxf86vm1 libxfixes3 libxrender1 libxkbcommon0
+                 libsm6 libice6 libgl1 libegl1 libglu1-mesa libgomp1)
+        fi
+        sudo apt-get update -qq
+        sudo apt-get install -y --no-install-recommends "${pkgs[@]}"
+
+    - name: Export CJK font override
+      if: inputs.fonts == 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        font=/usr/share/fonts/opentype/noto/NotoSansCJK-Regular.ttc
+        if [ -f "$font" ]; then
+          echo "CHAOSIM_FONT=$font" >> "$GITHUB_ENV"
+          echo "CHAOSIM_FONT=$font"
+        else
+          echo "::warning::CJK font not found at $font; drawtext falls back to fontconfig"
+        fi
+
+    - name: Verify ffmpeg
+      if: inputs.ffmpeg == 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        ffmpeg -hide_banner -version | head -n 1
+        ffprobe -hide_banner -version | head -n 1
+
+    # --- Blender --------------------------------------------------------
+    - name: Resolve Blender version
+      if: inputs.blender == 'true'
+      id: blender-resolve
+      shell: bash
+      run: |
+        set -euo pipefail
+        ver="${{ inputs.blender-version }}"
+        series="${ver%.*}"          # 4.5.3 -> 4.5
+        base="https://download.blender.org/release/Blender${series}"
+        # Prefer the exact pin for reproducibility. If that patch release was
+        # never published (or was pulled), fall back to the newest patch in the
+        # same series so a stale pin degrades to a warning instead of a 404.
+        if curl -fsI --retry 3 --retry-delay 3 \
+             "${base}/blender-${ver}-linux-x64.tar.xz" >/dev/null 2>&1; then
+          echo "Using pinned Blender ${ver}"
+        else
+          echo "::warning::Blender ${ver} not found; resolving newest ${series}.x"
+          latest=$(curl -fsSL --retry 3 --retry-delay 3 "${base}/" \
+            | grep -o "blender-${series}\.[0-9]\+-linux-x64\.tar\.xz" \
+            | sed "s/blender-\(.*\)-linux-x64\.tar\.xz/\1/" \
+            | sort -V | tail -n 1)
+          if [ -z "$latest" ]; then
+            echo "::error::Could not resolve any Blender ${series}.x release from ${base}/"
+            exit 1
+          fi
+          echo "Resolved Blender ${latest}"
+          ver="$latest"
+        fi
+        echo "version=$ver" >> "$GITHUB_OUTPUT"
+        echo "url=${base}/blender-${ver}-linux-x64.tar.xz" >> "$GITHUB_OUTPUT"
+
+    - name: Restore Blender cache
+      if: inputs.blender == 'true'
+      id: blender-cache
+      uses: actions/cache@v4
+      with:
+        path: ~/blender
+        key: blender-${{ runner.os }}-${{ runner.arch }}-${{ steps.blender-resolve.outputs.version }}
+
+    - name: Download Blender
+      if: inputs.blender == 'true' && steps.blender-cache.outputs.cache-hit != 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        url="${{ steps.blender-resolve.outputs.url }}"
+        echo "Downloading $url"
+        mkdir -p "$HOME/blender"
+        # -f so a 404 fails the job instead of caching an HTML error page.
+        curl -fL --retry 3 --retry-delay 5 --retry-all-errors \
+             -o "$RUNNER_TEMP/blender.tar.xz" "$url"
+        tar -xJf "$RUNNER_TEMP/blender.tar.xz" -C "$HOME/blender" --strip-components=1
+        rm -f "$RUNNER_TEMP/blender.tar.xz"
+
+    - name: Export and verify Blender
+      if: inputs.blender == 'true'
+      id: blender-export
+      shell: bash
+      run: |
+        set -euo pipefail
+        bin="$HOME/blender/blender"
+        test -x "$bin" || { echo "::error::Blender binary missing at $bin"; exit 1; }
+        echo "$HOME/blender" >> "$GITHUB_PATH"
+        # pipeline/renderer.py::get_blender_path prefers $BLENDER_PATH over PATH.
+        echo "BLENDER_PATH=$bin" >> "$GITHUB_ENV"
+        echo "path=$bin" >> "$GITHUB_OUTPUT"
+        "$bin" --version | head -n 3
+        # Prove the bundled interpreter works headlessly. runner.py and every
+        # scene import only stdlib + bpy + mathutils, so nothing needs pip.
+        "$bin" --background --python-expr \
+          'import bpy, sys; print("bpy", bpy.app.version_string, "py", sys.version.split()[0])'
+
+    # --- Node (material stage; off for the sim workflow) ------------------
+    - name: Set up Node
+      if: inputs.node == 'true'
+      uses: actions/setup-node@v4
+      with:
+        node-version: ${{ inputs.node-version }}
+        cache: npm
+        cache-dependency-path: package-lock.json
+
+    - name: Install Node dependencies
+      if: inputs.node == 'true' && inputs.npm-ci == 'true'
+      shell: bash
+      run: |
+        set -euo pipefail
+        npm ci
+        # HyperFrames drives puppeteer-core + @puppeteer/browsers, so it needs a
+        # resolvable Chrome. The material workflow sets PUPPETEER_EXECUTABLE_PATH.
+        echo "HYPERFRAMES_PATH=./node_modules/.bin/hyperframes" >> "$GITHUB_ENV"
