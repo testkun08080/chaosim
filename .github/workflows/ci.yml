@@ -1,0 +1,83 @@
+name: ci
+
+# Fast wiring check. Runs the whole pipeline in stub mode (CHAOSIM_STUB=1), so
+# it needs only Python + ffmpeg — no Blender, Node or VOICEVOX — and finishes in
+# a couple of minutes. Its job is to catch breakage in the shared setup action
+# and the pipeline plumbing, so a red `sim` run can be attributed to Blender
+# rather than to the wiring.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+permissions:
+  contents: read
+
+jobs:
+  stub:
+    name: tests + stub pipeline
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up chaosim toolchain
+        uses: ./.github/actions/setup-chaosim
+        with:
+          blender: 'false'
+          node: 'false'
+
+      - name: Unit tests
+        run: python -m unittest discover tests -v
+
+      - name: Full pipeline (stub mode)
+        env:
+          CHAOSIM_STUB: '1'
+          CONCEPT: concepts/generated/quick_domino_chain.yaml
+        run: |
+          set -euo pipefail
+          # 6s concept keeps this fast; the code path is identical to the
+          # 30s `make preview-run`. Every external tool degrades to an ffmpeg
+          # stub under CHAOSIM_STUB, so this exercises the real orchestration.
+          python scripts/chaosim.py run "$CONCEPT" 2>&1 | tee stub-run.log
+
+      - name: Verify stub output
+        env:
+          SLUG: quick_domino_chain
+        run: |
+          set -euo pipefail
+          final="outputs/final/${SLUG}_final.mp4"
+          test -f "$final" || { echo "::error::$final was not produced"; exit 1; }
+          bytes=$(stat -c%s "$final")
+          [ "$bytes" -gt 10000 ] || { echo "::error::$final is only ${bytes}B"; exit 1; }
+          ffprobe -v error -select_streams v:0 \
+            -show_entries stream=codec_name,width,height -of csv=p=0 "$final"
+          # Sanity-check the documented degradation contract: with CHAOSIM_STUB
+          # set, run_full_pipeline must report every external tool as absent.
+          grep -q "blender=False" stub-run.log || {
+            echo "::error::expected blender=False under CHAOSIM_STUB"; exit 1; }
+          echo "stub pipeline OK (${bytes} bytes)"
+
+      - name: Upload stub output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-stub-output
+          path: |
+            stub-run.log
+            outputs/final/*.mp4
+            outputs/final/*.png
+          if-no-files-found: ignore
+          retention-days: 3
