@@ -102,13 +102,21 @@ jobs:
             rm -rf "/tmp/x-$slug" && mkdir -p "/tmp/x-$slug"
             unzip -o -q "/tmp/$slug.zip" -d "/tmp/x-$slug"
             # Judging material only — the mp4 is deliberately left behind.
-            for f in "${slug}_contact.png" "${slug}_render.log" "${slug}_events.json"; do
+            for f in "${slug}_contact.png" "${slug}_events.json"; do
               if [ -f "/tmp/x-$slug/$f" ]; then
                 cp "/tmp/x-$slug/$f" "docs/gate1/$f"
               else
                 echo "::warning::$f missing inside sim-$slug"
               fi
             done
+            # Blender prints one progress line per tile per frame, so the raw log
+            # is ~1 MB of "Fra:123 Mem:... Remaining:...". Keep only the lines that
+            # say what was actually rendered; the full log stays in the artifact.
+            if [ -f "/tmp/x-$slug/${slug}_render.log" ]; then
+              grep -E '^(Running:|Engine=|Staged frame_end|CHAOSIM_MAX_FRAMES=|Wrote [0-9]+ SFX|Render complete|Blender |Error|ERROR|Warning|WARNING|Traceback)' \
+                "/tmp/x-$slug/${slug}_render.log" \
+                | grep -vE '^Fra:' > "docs/gate1/${slug}_render.log" || true
+            fi
             found=$((found + 1))
           done
           echo "found=$found" >> "$GITHUB_OUTPUT"
