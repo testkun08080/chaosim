@@ -12,6 +12,7 @@ material / narration / composite / thumbnail と、それらを束ねる orchest
 |---|---|---|---|
 | `ci.yml` | push(main) / PR / 手動 | スタブモードで全工程を通し、配線と共通セットアップを検証 | 約2〜5分 |
 | `sim.yml` | 手動 / `workflow_call` | Blender シミュレーション＋レンダー | preview 6秒尺で約10〜20分 |
+| `gate-review.yml` | 手動 / `docs/gate1/slugs.txt` への push | 既存 sim 実行の `sim-<slug>` を再取得し、コンタクトシートを `docs/gate1/` に集めてコミット | 約30秒 |
 
 ## 使い方
 
@@ -30,6 +31,11 @@ material / narration / composite / thumbnail と、それらを束ねる orchest
      `docs/production-plan.md` の Gate 1→2（画づくりの合否）をここで判断する
    - `<slug>_events.json` — SFX 用の衝突イベント
    - `<slug>_render.log` — 実行ログ
+4. 複数企画をまとめて見比べるときは **`gate-review`** を回す。
+   実行済みの sim から `sim-<slug>` を再取得して `docs/gate1/` にコミットするので、
+   zip を1本ずつ落とさずリポジトリ上でコンタクトシートを並べて判定できる
+   （レンダーはやり直さない）。対象は `docs/gate1/slugs.txt` で指定する。
+   mp4 はコミットしないので、動きを見るときは Artifacts から取る。
 
 ## プリセットとコストの制約
 
