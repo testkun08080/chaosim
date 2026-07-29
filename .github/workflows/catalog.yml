@@ -1,0 +1,102 @@
+name: catalog
+
+# Regenerate docs/catalog/README.md — the concept x scene health check.
+#
+# No Blender, no render: this is a static cross-check of concepts/**/*.yaml
+# against simulators/blender/scenes/*.py, so it runs in seconds. It catches the
+# class of problem that otherwise only shows up after a ~40-minute preview
+# render: a scene_script that does not exist, or params that are declared in
+# YAML but never reach the code (runner.py does not pass params into
+# run_simulation(), so those values silently do nothing).
+
+on:
+  push:
+    branches: ['main', 'claude/**']
+    paths:
+      - 'concepts/**'
+      - 'simulators/blender/scenes/**'
+      - 'simulators/blender/runner.py'
+      - 'pipeline/catalog.py'
+      - 'templates/docs/**'
+      - '.github/workflows/catalog.yml'
+  pull_request:
+    paths:
+      - 'concepts/**'
+      - 'simulators/blender/scenes/**'
+      - 'simulators/blender/runner.py'
+      - 'pipeline/catalog.py'
+      - 'templates/docs/**'
+  workflow_dispatch:
+
+concurrency:
+  group: catalog-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+permissions:
+  contents: write   # commits the regenerated view back to the branch
+
+jobs:
+  generate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref || github.ref_name }}
+
+      - name: Set up chaosim toolchain
+        uses: ./.github/actions/setup-chaosim
+        with:
+          # Static analysis only — no Blender, no ffmpeg, no fonts.
+          blender: 'false'
+          node: 'false'
+          ffmpeg: 'false'
+          fonts: 'false'
+
+      - name: Unit tests
+        run: python -m unittest discover tests -v
+
+      - name: Generate catalog
+        id: gen
+        run: |
+          set -euo pipefail
+          # --check makes an error-level finding fail the job. Concepts marked
+          # `status: blocked` only produce warnings, so parked work stays green.
+          python scripts/chaosim.py catalog --check | tee catalog-run.log
+
+      - name: Commit
+        # A pull_request checkout is a detached merge ref; pushing there would
+        # fail or clobber. Only the push event owns the branch.
+        if: github.event_name != 'pull_request'
+        run: |
+          set -euo pipefail
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/catalog
+          if git diff --cached --quiet; then
+            echo "catalog unchanged"; exit 0
+          fi
+          git commit -m "chore(catalog): regenerate concept/scene health view"
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+
+      - name: Job summary
+        if: always()
+        run: |
+          {
+            echo "## catalog"
+            echo ""
+            if [ -f catalog-run.log ]; then
+              echo '```'
+              cat catalog-run.log
+              echo '```'
+            fi
+            echo ""
+            echo "詳細は \`docs/catalog/README.md\`。"
+          } >> "$GITHUB_STEP_SUMMARY"

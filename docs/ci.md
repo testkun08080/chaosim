@@ -13,6 +13,14 @@ material / narration / composite / thumbnail と、それらを束ねる orchest
 | `ci.yml` | push(main) / PR / 手動 | スタブモードで全工程を通し、配線と共通セットアップを検証 | 約2〜5分 |
 | `sim.yml` | 手動 / `workflow_call` | Blender シミュレーション＋レンダー | preview 6秒尺で約10〜20分 |
 | `gate-review.yml` | 手動 / `docs/gate1/slugs.txt` への push | 既存 sim 実行の `sim-<slug>` を再取得し、コンタクトシートを `docs/gate1/` に集めてコミット | 約30秒 |
+| `catalog.yml` | `concepts/` `scenes/` への push / PR / 手動 | 企画とシーンを突き合わせて `docs/catalog/` を再生成。error があれば失敗 | 約1分 |
+
+`docs/` 以下の生成ビュー:
+
+| ビュー | 何が分かるか | いつ更新されるか |
+|---|---|---|
+| `docs/gate1/` | Phase 1 の画づくり（コンタクトシート） | `gate-review` 実行時 |
+| `docs/catalog/` | 企画とコードの整合（scene_script の実在・params の到達率・シーン契約） | `concepts/` か `scenes/` を触るたび自動 |
 
 ## 使い方
 

@@ -16,7 +16,18 @@ python scripts/chaosim.py run concepts/sample_001_double_pendulum.yaml
 
 # Upload to YouTube
 python scripts/chaosim.py upload outputs/renders/double_pendulum_001.mp4
+
+# Cross-check every concept against its scene script (no render, seconds)
+python scripts/chaosim.py catalog          # regenerates docs/catalog/README.md
+python scripts/chaosim.py catalog --check  # exit 1 on any error-level finding
 ```
+
+## Concept/Scene Health
+`docs/catalog/README.md` is generated — never edit it. It reports which concepts point at a
+scene script that does not exist, and which `params:` keys never reach the code.
+That last one matters: `runner.py` calls `run_simulation()` with **no arguments**, so any
+scene that uses physics constants outside `setup_scene(params)` silently ignores its YAML.
+Check the catalog before tuning params — otherwise the edit does nothing.
 
 ## Production Workflow (phased)
 Videos are produced through gated phases — see `docs/production-plan.md`:

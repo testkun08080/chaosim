@@ -7,6 +7,7 @@ without touching Python. Subdirectories:
 - ``templates/thumbnail/``   — thumbnail stills (``*.html.j2``)
 - ``templates/narration/``   — narration script builders (``*.txt.j2``)
 - ``templates/video/``       — top-level video templates (``*.yaml``)
+- ``templates/docs/``        — generated documentation views (``*.md.j2``)
 """
 
 from pathlib import Path
@@ -40,6 +41,7 @@ def _resolve_name(subdir: str, name: str) -> str:
         "hyperframes": ".html.j2",
         "thumbnail": ".html.j2",
         "narration": ".txt.j2",
+        "docs": ".md.j2",
     }.get(subdir, ".j2")
     return f"{name}{default_ext}"
 

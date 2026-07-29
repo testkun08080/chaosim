@@ -189,5 +189,42 @@ def list_concepts():
         console.print(f"  {f}")
 
 
+@cli.command()
+@click.option("--output", default="docs/catalog/README.md", show_default=True,
+              help="Where to write the generated view.")
+@click.option("--check", is_flag=True,
+              help="Exit non-zero if any concept has an error-level finding.")
+@click.option("--stdout", "to_stdout", is_flag=True, help="Print instead of writing the file.")
+def catalog(output, check, to_stdout):
+    """Cross-check concepts against scene scripts and write docs/catalog/."""
+    from pipeline.catalog import collect_catalog
+    from pipeline.templating import render_template
+
+    ctx = collect_catalog()
+    markdown = render_template("docs", "catalog", ctx)
+
+    if to_stdout:
+        click.echo(markdown)
+    else:
+        out = Path(output)
+        out.parent.mkdir(parents=True, exist_ok=True)
+        out.write_text(markdown, encoding="utf-8")
+        console.print(f"[green]Wrote[/green] {out}")
+
+    t = ctx["totals"]
+    console.print(
+        f"{t['concepts']} concepts · [red]{t['errors']} error[/red] · "
+        f"[yellow]{t['warnings']} warn[/yellow] · "
+        f"params {t['params_live']}/{t['params_declared']} ({t['params_live_pct']}%) reach code"
+    )
+    for e in ctx["entries"]:
+        for f in e["findings"]:
+            if f["level"] == "error":
+                console.print(f"  [red]error[/red] {e['slug']}: {f['message']}")
+
+    if check and t["errors"]:
+        raise SystemExit(1)
+
+
 if __name__ == "__main__":
     cli()
