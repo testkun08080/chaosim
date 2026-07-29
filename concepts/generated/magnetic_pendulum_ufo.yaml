@@ -1,0 +1,47 @@
+title: "Magnetic Chaos Pendulum — UFO Type"
+slug: magnetic_pendulum_ufo
+simulator: blender
+scene_script: magnetic_pendulum
+duration_sec: 15
+description: >
+  A pendulum bob swings freely above three fixed magnets arranged in a
+  triangle. Which magnet it eventually settles near — or whether it keeps
+  wandering unpredictably — is extremely sensitive to the starting position.
+  Rendered as a single glowing white trail over three colored magnet markers
+  on a dark studio background.
+hook: "Bob released from a random spot — the glowing trail immediately starts wandering unpredictably between the three magnets"
+viral_angle: >
+  Real-world version (physicsfun on Instagram, "Magnetic Chaotic UFO
+  Pendulum") is an established, well-liked desk-toy format that has not been
+  widely reproduced in CG yet — low competition, clear chaos-theory hook for
+  STEM audiences.
+references:
+  - "physicsfun (Instagram) — Magnetic Chaotic Pendulum reels"
+params:
+  magnet_count: 3
+  magnet_radius: 1.2
+  bob_start_x: 0.55
+  bob_start_y: 0.25
+  bob_height: 1.4
+  spring: 0.35
+  damping: 0.18
+  magnet_strength: 0.55
+render_preset: preview   # Phase 1 (vertical slice) — do not raise until gate passes
+music_mood: "ambient, tense, unresolved until the very end"
+caption: "Which magnet will it choose? #shorts #physics #chaos #magnet"
+hashtags:
+  - chaostheory
+  - magnet
+  - physics
+  - satisfying
+  - simulation
+
+status_note: >
+  NEW scene script (simulators/blender/scenes/magnetic_pendulum.py), just
+  added and registered in simulators/blender/__init__.py — untested end to
+  end. Run Phase 1 preview render first and check for camera framing /
+  magnet spacing before trusting this concept. Known limitation: like
+  double_pendulum.py, runner.py does not pass `params` into run_simulation(),
+  so the physics constants above are illustrative only — the script currently
+  uses hardcoded defaults matching this YAML. Wire params through if you need
+  per-concept tuning to actually take effect.

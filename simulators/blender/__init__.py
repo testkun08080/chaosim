@@ -6,4 +6,6 @@ AVAILABLE_SCENES = [
     "domino_chain",
     "paper_to_cloth",
     "cloth_drop_faces",
+    "magnetic_pendulum",
+    "ring_escape",
 ]

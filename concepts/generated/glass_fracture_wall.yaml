@@ -1,0 +1,53 @@
+title: "Glass Wall Shatter — Sphere Impact"
+slug: glass_fracture_wall
+simulator: blender
+scene_script: glass_fracture_wall   # NOT YET IMPLEMENTED — see status_note
+duration_sec: 10
+description: >
+  A heavy sphere is launched at a glass pane / wall. On impact the glass
+  fractures into many shards (Cell Fracture) and the shards fall under
+  rigid-body physics, catching studio light as they scatter.
+hook: "Sphere makes contact with the glass at frame ~15 — instant fracture cascade"
+viral_angle: >
+  Destruction/fracture content sits in Kawaken_3DCG's top-performing bracket
+  (their highest shorts reach 8–13M views, and destruction-type content is
+  disproportionately represented there vs. their median). Highest ceiling of
+  the 10 candidates researched, but also the most render-cost-sensitive —
+  shard count directly drives both bake time and render time.
+references:
+  - "Kawaken_3DCG shorts (youtube.com/@Kawaken_3DCG/shorts) — general destruction/impact bracket"
+  - "Glass Window Breaking Simulation in Blender (youtube.com/watch?v=P8VHGjWBQ4w) — technique reference"
+params:
+  pane_width: 1.6
+  pane_height: 2.4
+  pane_thickness: 0.03
+  fracture_shard_count: 80          # keep low for Phase 1 preview; raise for Phase 2 only
+  projectile: sphere
+  projectile_radius: 0.22
+  projectile_speed: 12.0
+  impact_point: [0.0, 0.0, 1.2]
+  shard_scatter_force: 3.0
+render_preset: preview
+music_mood: "sharp impact hit, glass-shard shimmer tail"
+caption: "One hit, total shatter #shorts #blender #destruction #satisfying"
+hashtags:
+  - destruction
+  - blender
+  - satisfying
+  - physics
+  - shorts
+
+status: blocked
+status_note: >
+  BLOCKED at Gate 0 (企画レビュー) — scene_script `glass_fracture_wall` does
+  not exist yet in simulators/blender/scenes/. Cannot run Phase 1 until it's
+  implemented. Recommended approach: build the pane as a single mesh, apply
+  the Cell Fracture add-on (bundled with Blender) to pre-shatter it into N
+  cells before the sim starts, add rigid_body to each shard (PASSIVE, held
+  together loosely via a "Glue" constraint or high friction so it doesn't
+  pre-collapse), then drive the projectile as a keyframed-then-released
+  ACTIVE rigid body timed to hit the pane a few frames in. Follow the
+  domino_chain.py pattern for the bake/collect_impact_events structure so
+  this can feed Phase 1-c's SFX bake step too. Once implemented, add it to
+  simulators/blender/__init__.py AVAILABLE_SCENES and remove this status
+  block before the concept can pass Gate 0 → 1.

@@ -1,0 +1,54 @@
+title: "0% vs 100% Soft Body — Torus Edition"
+slug: soft_body_torus_compare
+simulator: blender
+scene_script: soft_body_torus_compare   # NOT YET IMPLEMENTED — see status_note
+duration_sec: 15
+description: >
+  A rigid object (cylinder or block) slides/drops into a torus. The same
+  drop is shown twice, side by side or in sequence: once with the torus at
+  0% softness (rigid), once at 100% softness (fully soft-body deformable).
+  Same staged-comparison structure as cloth_drop_faces.py, applied to
+  Blender's Soft Body physics instead of Cloth physics.
+hook: "0% version: hard clack. 100% version: it swallows the object like jelly"
+viral_angle: >
+  Direct imitation of Kintsugi_3DCG's most-viewed format (their "0% vs 100%
+  Torus/Cylinder Soft Body" shorts, ~270k views on the flagship video) and
+  the matching TikTok trend (@factsforyou831, glass-tube cylinder soft body,
+  327k likes). Comparison format is inherently satisfying and easy for
+  viewers to grasp in the first second.
+references:
+  - "Kintsugi_3DCG — 0% vs 100% Torus 3D Soft Body Simulation (youtube.com/shorts/JdTzHc_mwlw)"
+  - "Kintsugi_3DCG — Cylinder Sliding Into the Torus Soft Body Simulation (youtube.com/shorts/75dWX87ECAM)"
+  - "@factsforyou831 (TikTok) — 3D Satisfying Simulation, glass-tube soft body cylinder"
+params:
+  softness_stages: [0, 100]        # proposed — mirrors cloth_drop_faces' face_counts pattern
+  stage_duration_sec: 7.5
+  torus_major_radius: 0.8
+  torus_minor_radius: 0.3
+  dropped_object: cylinder
+  drop_height: 1.2
+  soft_body_mass: 0.4
+  soft_body_friction: 0.5
+  material_style: glass             # to match the TikTok/Kintsugi glass-tube look
+render_preset: preview
+music_mood: "soft impact, satisfying squish on the 100% half"
+caption: "0% vs 100% soft body torus #shorts #blender #satisfying #softbody"
+hashtags:
+  - softbody
+  - blender
+  - satisfying
+  - physics
+  - shorts
+
+status: blocked
+status_note: >
+  BLOCKED at Gate 0 (企画レビュー) — scene_script `soft_body_torus_compare`
+  does not exist yet in simulators/blender/scenes/. Cannot run Phase 1 until
+  it's implemented. Recommended approach: copy
+  simulators/blender/scenes/_staged_demo_template.py (same staged-comparison
+  contract cloth_drop_faces.py uses) and swap the Cloth modifier for a Soft
+  Body modifier on the torus, sweeping `bpy.ops.object.modifier_add(type=
+  "SOFT_BODY")` stiffness/goal settings from rigid-like (goal spring high) to
+  fully soft (goal spring low) between stages. Once implemented, add it to
+  simulators/blender/__init__.py AVAILABLE_SCENES and remove this status
+  block before the concept can pass Gate 0 → 1.

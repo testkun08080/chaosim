@@ -1,0 +1,49 @@
+title: "Can the Ball Escape? — 5 Spinning Rings"
+slug: ring_escape_5rings
+simulator: blender
+scene_script: ring_escape
+duration_sec: 12
+description: >
+  A ball drops through a vertical stack of 5 spinning rings, each with a gap.
+  It only falls through a ring if the gap happens to line up in time —
+  otherwise it bounces off and the run is over. Rings spin in alternating
+  directions at different speeds for visual variety.
+hook: "Ball drops onto the top ring immediately — will the gap be there?"
+viral_angle: >
+  Direct imitation of the "Can the ball escape?" / concentric-rotating-ring
+  format that is popular enough on TikTok/Shorts to have spawned dedicated
+  generator tools (ViralBalls, BallSimulator). Proven, reliably viral
+  template — the main risk is our render looking too "CG-clean" vs. the
+  scrappier tool-generated originals, which may actually help it stand out.
+references:
+  - "ViralBalls — Free Satisfying Ball Physics Simulator (viralballs.com)"
+  - "\"Can the ball escape or not\" — youtube.com/shorts/iYUA2M1FC64"
+params:
+  ring_count: 5
+  ring_radius: 1.1
+  ring_spacing: 1.1
+  ring_gap_deg: 55
+  ring_thickness: 0.09
+  segments_per_ring: 28
+  ball_radius: 0.16
+  ball_color: [1.0, 0.2, 0.15]
+render_preset: preview   # Phase 1 (vertical slice) — do not raise until gate passes
+music_mood: "tense build, tick-like rhythm, release on escape"
+caption: "Will it escape all 5 rings? #shorts #satisfying #simulation #physics"
+hashtags:
+  - satisfying
+  - simulation
+  - physics
+  - shorts
+  - chainreaction
+
+status_note: >
+  NEW scene script (simulators/blender/scenes/ring_escape.py), just added
+  and registered in simulators/blender/__init__.py — untested end to end.
+  Highest priority to vertical-slice test: this is the most reliably viral
+  format found in research (#10 in the concept comparison). Things to check
+  in the Phase 1 preview: (1) gap timing actually lets the ball through at
+  least once — currently gap start angle is randomized per ring with a fixed
+  seed, not tuned for a satisfying pass, (2) ring segment count is high
+  enough that the "broken circle" doesn't read as blocky at preview
+  resolution, (3) camera framing covers the full stack height in 9:16.
