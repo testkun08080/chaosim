@@ -131,7 +131,7 @@ scene.frame_end = max(1, int(duration_sec * scene.render.fps))
 
 # CI cost guardrail: cap the frame count so a long concept cannot burn the whole
 # job budget before failing. Staged scenes (render_staged) recompute frame_end
-# themselves below and are not covered by this cap.
+# themselves below; the cap is re-applied to them at that point.
 max_frames = int(os.environ.get("CHAOSIM_MAX_FRAMES", "0") or 0)
 if max_frames > 0 and scene.frame_end > max_frames:
     print(f"CHAOSIM_MAX_FRAMES={max_frames}: truncating frame_end "
@@ -149,10 +149,24 @@ if hasattr(scene_module, "render_staged"):
     # Align duration with stage math when the scene declares face_counts.
     face_counts = params.get("face_counts")
     stage_sec = float(params.get("stage_duration_sec", 0) or 0)
-    if face_counts and stage_sec > 0:
-        staged_end = max(1, int(len(face_counts) * stage_sec * scene.render.fps))
-        scene.frame_end = staged_end
-        print(f"Staged frame_end override -> {staged_end}")
+    if face_counts:
+        fps = scene.render.fps
+        # Re-apply CHAOSIM_MAX_FRAMES here: 4 stages of cloth_by_faces is 600
+        # frames, which does not fit the CI job budget, and a timeout uploads no
+        # artifact at all. Shrink each stage instead of dropping stages — the
+        # progression across face_counts *is* the concept, so a slice that lost
+        # the last stage would not be judgeable. render_staged() reads
+        # stage_duration_sec back out of params, so mutating it here is enough.
+        over_cap = stage_sec <= 0 or len(face_counts) * stage_sec * fps > max_frames
+        if max_frames > 0 and over_cap:
+            stage_sec = max(1.0 / fps, max_frames / (len(face_counts) * fps))
+            params["stage_duration_sec"] = stage_sec
+            print(f"CHAOSIM_MAX_FRAMES={max_frames}: stage_duration_sec -> "
+                  f"{stage_sec:.3f}s x {len(face_counts)} stages")
+        if stage_sec > 0:
+            staged_end = max(1, int(len(face_counts) * stage_sec * fps))
+            scene.frame_end = staged_end
+            print(f"Staged frame_end override -> {staged_end}")
     scene_module.render_staged(params, frames_dir)
     events_path.write_text(json.dumps({"events": []}), encoding="utf-8")
 else:

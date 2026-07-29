@@ -50,8 +50,12 @@ GitHub-hosted ランナーは CPU 4コアのみで、1ジョブ6時間の上限�
 - `high` / `ultra` は `allow_expensive: true` を付けない限りガードステップで即失敗する。
   6時間使い切ってから落ちるのを防ぐため。
 - `max_frames`（既定900）が `CHAOSIM_MAX_FRAMES` としてフレーム数を打ち切る。
-  ただし `render_staged()` を持つシーン（`paper_to_cloth` / `cloth_drop_faces`）は
-  自前で `frame_end` を決めるため対象外。
+  `render_staged()` を持つシーン（`paper_to_cloth` / `cloth_drop_faces`）にも効くが、
+  打ち切り方が違う。**段数（`face_counts`）は減らさず、1段あたりの
+  `stage_duration_sec` を縮めて上限に収める。** 段階シーンは「面数を上げるほど布になる」
+  という進行そのものが hook なので、段を落とすと判定材料にならないため。
+  例: `max_frames=180` × 4段 → 1段45フレーム（1.5秒）。
+  短すぎて動きが読めない場合は `max_frames` を上げて回し直す。
 
 **本番画質（`medium` 以上）はローカル実行を推奨。**
 
