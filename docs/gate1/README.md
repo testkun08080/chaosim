@@ -7,7 +7,7 @@
 > mp4 は Actions の `sim-<slug>` アーティファクトから取得する
 > （`outputs/` は意図的に gitignore なので動画はコミットしない）。
 
-生成: `gate-review` workflow — 2026-07-29 07:21 UTC
+生成: `gate-review` workflow — 2026-07-29 07:26 UTC
 
 ## `ring_escape_5rings`
 
