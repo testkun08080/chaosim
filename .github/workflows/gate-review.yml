@@ -1,0 +1,183 @@
+name: gate-review
+
+# Collect the contact sheets produced by `sim` runs into docs/gate1/ and commit
+# them, so the Phase 1 (vertical slice) look gate in docs/production-plan.md can
+# be reviewed from the repo instead of by downloading one zip per concept.
+#
+# This does NOT re-render. It re-fetches the `sim-<slug>` artifacts that existing
+# sim runs already published, which takes seconds rather than the ~40 minutes a
+# preview render costs.
+#
+# Only the small judging material is committed (contact sheet, render log, SFX
+# events). The mp4 stays in the Actions artifact — `outputs/` is gitignored on
+# purpose and rendered footage does not belong in git history.
+
+on:
+  workflow_dispatch:
+    inputs:
+      slugs:
+        description: Space- or comma-separated concept slugs to collect.
+        type: string
+        required: true
+        default: ring_escape_5rings magnetic_pendulum_ufo paper_to_cloth cloth_by_faces
+  # Lets the workflow run from a feature branch: workflow_dispatch only lists
+  # workflows that exist on the default branch, so a branch-only workflow has to
+  # be triggered by push. Scoped to this file plus the slug list so ordinary
+  # commits on the branch do not re-run it.
+  push:
+    branches: ['claude/**']
+    paths:
+      - '.github/workflows/gate-review.yml'
+      - 'docs/gate1/slugs.txt'
+
+concurrency:
+  group: gate-review-${{ github.ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash
+
+permissions:
+  contents: write   # commits docs/gate1/ back to the branch
+  actions: read     # reads artifacts from other workflow runs
+
+jobs:
+  collect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }}
+
+      - name: Resolve slug list
+        id: slugs
+        env:
+          INPUT_SLUGS: ${{ inputs.slugs }}
+        run: |
+          set -euo pipefail
+          # workflow_dispatch supplies inputs.slugs; a push does not, so fall
+          # back to the committed list.
+          raw="${INPUT_SLUGS:-}"
+          if [ -z "$raw" ] && [ -f docs/gate1/slugs.txt ]; then
+            raw=$(grep -vE '^\s*(#|$)' docs/gate1/slugs.txt | tr '\n' ' ')
+          fi
+          raw=$(echo "$raw" | tr ',' ' ' | tr -s ' ')
+          [ -n "${raw// /}" ] || { echo "::error::no slugs to collect"; exit 1; }
+          for s in $raw; do
+            case "$s" in
+              [A-Za-z0-9]*) ;;
+              *) echo "::error::unsafe slug '$s'"; exit 1 ;;
+            esac
+          done
+          echo "list=$raw" >> "$GITHUB_OUTPUT"
+          echo "collecting: $raw"
+
+      - name: Fetch sim artifacts
+        id: fetch
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SLUGS: ${{ steps.slugs.outputs.list }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          mkdir -p docs/gate1
+          found=0; missing=""
+          for slug in $SLUGS; do
+            # The artifacts endpoint filters by exact name, so this picks the
+            # newest sim-<slug> across every sim run without guessing run IDs.
+            id=$(gh api "repos/$REPO/actions/artifacts?name=sim-$slug&per_page=100" \
+                   --jq '[.artifacts[] | select(.expired == false)]
+                         | sort_by(.created_at) | last | .id // empty')
+            if [ -z "$id" ]; then
+              echo "::warning::no live artifact named sim-$slug"
+              missing="$missing $slug"
+              continue
+            fi
+            echo "sim-$slug -> artifact $id"
+            gh api "repos/$REPO/actions/artifacts/$id/zip" > "/tmp/$slug.zip"
+            rm -rf "/tmp/x-$slug" && mkdir -p "/tmp/x-$slug"
+            unzip -o -q "/tmp/$slug.zip" -d "/tmp/x-$slug"
+            # Judging material only — the mp4 is deliberately left behind.
+            for f in "${slug}_contact.png" "${slug}_render.log" "${slug}_events.json"; do
+              if [ -f "/tmp/x-$slug/$f" ]; then
+                cp "/tmp/x-$slug/$f" "docs/gate1/$f"
+              else
+                echo "::warning::$f missing inside sim-$slug"
+              fi
+            done
+            found=$((found + 1))
+          done
+          echo "found=$found" >> "$GITHUB_OUTPUT"
+          echo "missing=${missing# }" >> "$GITHUB_OUTPUT"
+          [ "$found" -gt 0 ] || { echo "::error::no artifacts collected"; exit 1; }
+
+      - name: Write index
+        env:
+          SLUGS: ${{ steps.slugs.outputs.list }}
+          REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          {
+            echo "# Phase 1 — 画づくり判定シート（Gate 1→2）"
+            echo
+            echo "\`sim.yml\` の preview レンダーから集めたコンタクトシート。"
+            echo "等間隔6フレームを 3x2 で並べたもの。判定基準は"
+            echo "\`docs/production-plan.md\` の Gate 1→2 の5項目。"
+            echo
+            echo "> mp4 は Actions の \`sim-<slug>\` アーティファクトから取得する"
+            echo "> （\`outputs/\` は意図的に gitignore なので動画はコミットしない）。"
+            echo
+            echo "生成: \`gate-review\` workflow — $(date -u '+%Y-%m-%d %H:%M UTC')"
+            echo
+            for slug in $SLUGS; do
+              echo "## \`$slug\`"
+              echo
+              if [ -f "docs/gate1/${slug}_contact.png" ]; then
+                echo "![${slug}](./${slug}_contact.png)"
+              else
+                echo "_コンタクトシートなし（レンダー失敗）_"
+              fi
+              echo
+              if [ -f "docs/gate1/${slug}_render.log" ]; then
+                echo '```'
+                grep -E '^(Engine=|Staged frame_end|CHAOSIM_MAX_FRAMES=|Wrote [0-9]+ SFX|Render complete)' \
+                  "docs/gate1/${slug}_render.log" | head -n 8 || true
+                echo '```'
+                echo
+              fi
+            done
+          } > docs/gate1/README.md
+          ls -la docs/gate1/
+
+      - name: Commit
+        run: |
+          set -euo pipefail
+          git config user.name  "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add docs/gate1
+          if git diff --cached --quiet; then
+            echo "nothing changed"; exit 0
+          fi
+          git commit -m "chore(gate1): collect vertical-slice contact sheets from sim runs"
+          # The push that triggered this job may not be the branch tip any more.
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
+
+      - name: Job summary
+        if: always()
+        env:
+          FOUND: ${{ steps.fetch.outputs.found }}
+          MISSING: ${{ steps.fetch.outputs.missing }}
+        run: |
+          {
+            echo "## gate-review"
+            echo ""
+            echo "- collected: **${FOUND:-0}** contact sheet(s) into \`docs/gate1/\`"
+            [ -n "${MISSING:-}" ] && echo "- missing: \`${MISSING}\`"
+            echo ""
+            echo "Review them in \`docs/gate1/README.md\` on this branch."
+          } >> "$GITHUB_STEP_SUMMARY"
