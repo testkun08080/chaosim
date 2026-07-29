@@ -7,7 +7,7 @@
 > mp4 は Actions の `sim-<slug>` アーティファクトから取得する
 > （`outputs/` は意図的に gitignore なので動画はコミットしない）。
 
-生成: `gate-review` workflow — 2026-07-29 07:34 UTC
+生成: `gate-review` workflow — 2026-07-29 07:40 UTC
 
 ## `ring_escape_5rings`
 
@@ -21,7 +21,13 @@ Render complete: /home/runner/work/chaosim/chaosim/outputs/renders/ring_escape_5
 
 ## `magnetic_pendulum_ufo`
 
-_コンタクトシートなし（レンダー失敗）_
+![magnetic_pendulum_ufo](./magnetic_pendulum_ufo_contact.png)
+
+```
+CHAOSIM_MAX_FRAMES=180: truncating frame_end 450 -> 180
+Engine=CYCLES frames=1-180 res%=50 fps=30
+Render complete: /home/runner/work/chaosim/chaosim/outputs/renders/magnetic_pendulum_ufo.mp4
+```
 
 ## `paper_to_cloth`
 
