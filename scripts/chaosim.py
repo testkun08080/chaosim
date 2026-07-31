@@ -192,12 +192,16 @@ def list_concepts():
 @cli.command()
 @click.option("--output", default="docs/catalog/README.md", show_default=True,
               help="Where to write the generated view.")
+@click.option("--data-dir", default="outputs/catalog", show_default=True,
+              help="Where to write catalog.json / concepts.csv.")
+@click.option("--no-data", is_flag=True, help="Skip the JSON/CSV data files.")
 @click.option("--check", is_flag=True,
               help="Exit non-zero if any concept has an error-level finding.")
 @click.option("--stdout", "to_stdout", is_flag=True, help="Print instead of writing the file.")
-def catalog(output, check, to_stdout):
+def catalog(output, data_dir, no_data, check, to_stdout):
     """Cross-check concepts against scene scripts and write docs/catalog/."""
-    from pipeline.catalog import collect_catalog
+    from pipeline.catalog import CSV_FIELDS, catalog_csv_rows, collect_catalog
+    from pipeline.report import write_csv, write_json
     from pipeline.templating import render_template
 
     ctx = collect_catalog()
@@ -211,6 +215,12 @@ def catalog(output, check, to_stdout):
         out.write_text(markdown, encoding="utf-8")
         console.print(f"[green]Wrote[/green] {out}")
 
+    if not no_data:
+        d = Path(data_dir)
+        write_json(d / "catalog.json", ctx)
+        write_csv(d / "concepts.csv", catalog_csv_rows(ctx), CSV_FIELDS)
+        console.print(f"[green]Wrote[/green] {d / 'catalog.json'}, {d / 'concepts.csv'}")
+
     t = ctx["totals"]
     console.print(
         f"{t['concepts']} concepts · [red]{t['errors']} error[/red] · "
@@ -223,6 +233,42 @@ def catalog(output, check, to_stdout):
                 console.print(f"  [red]error[/red] {e['slug']}: {f['message']}")
 
     if check and t["errors"]:
+        raise SystemExit(1)
+
+
+@cli.command("gate1-report")
+@click.option("--gate1-dir", default="docs/gate1", show_default=True,
+              help="Directory `gate-review` collected contact sheets into.")
+@click.option("--data-dir", default="outputs/gate1", show_default=True,
+              help="Where to write gate1.json / gate1.csv.")
+@click.option("--check", is_flag=True,
+              help="Exit non-zero if any concept is still pending a verdict.")
+def gate1_report(gate1_dir, data_dir, check):
+    """Turn docs/gate1/ + verdicts.yaml into outputs/gate1/ data files."""
+    from pipeline.gate1 import CSV_FIELDS, collect_gate1, gate1_csv_rows, load_verdicts
+    from pipeline.report import write_csv, write_json
+
+    g1 = Path(gate1_dir)
+    record = collect_gate1(g1, load_verdicts(g1 / "verdicts.yaml"))
+
+    d = Path(data_dir)
+    write_json(d / "gate1.json", record)
+    write_csv(d / "gate1.csv", gate1_csv_rows(record), CSV_FIELDS)
+    console.print(f"[green]Wrote[/green] {d / 'gate1.json'}, {d / 'gate1.csv'}")
+
+    t = record["totals"]
+    console.print(
+        f"{t['concepts']} concepts · contact sheet {t['with_contact_sheet']} · "
+        f"metrics {t['with_render_metrics']}"
+    )
+    for v in ("pass", "hold", "rework", "fail", "pending"):
+        n = t[f"verdict_{v}"]
+        if n:
+            console.print(f"  {v}: {n}")
+
+    if check and t["verdict_pending"]:
+        pending = [e["slug"] for e in record["entries"] if e["verdict"] == "pending"]
+        console.print(f"[red]pending verdicts:[/red] {', '.join(pending)}")
         raise SystemExit(1)
 
 

@@ -66,9 +66,25 @@ jobs:
         id: gen
         run: |
           set -euo pipefail
-          # --check makes an error-level finding fail the job. Concepts marked
-          # `status: blocked` only produce warnings, so parked work stays green.
+          # Writes docs/catalog/README.md for humans plus outputs/catalog/*.{json,csv}
+          # as data files. --check makes an error-level finding fail the job;
+          # concepts marked `status: blocked` only warn, so parked work stays green.
           python scripts/chaosim.py catalog --check | tee catalog-run.log
+
+      - name: Upload catalog data
+        # Before the commit step so the data survives even when the push fails.
+        # outputs/ is gitignored on purpose — this artifact is how the JSON/CSV
+        # leaves CI. Explicit paths, never a directory glob (see sim.yml).
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: catalog-report
+          path: |
+            outputs/catalog/catalog.json
+            outputs/catalog/concepts.csv
+            docs/catalog/README.md
+          if-no-files-found: error
+          retention-days: 14
 
       - name: Commit
         # A pull_request checkout is a detached merge ref; pushing there would

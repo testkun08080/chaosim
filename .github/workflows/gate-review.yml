@@ -161,6 +161,42 @@ jobs:
           } > docs/gate1/README.md
           ls -la docs/gate1/
 
+      - name: Set up chaosim toolchain
+        # Needed only by the gate1-report step below; the collection steps above
+        # are shell + gh. Nothing heavy: no Blender, no ffmpeg, no Node.
+        uses: ./.github/actions/setup-chaosim
+        with:
+          blender: 'false'
+          node: 'false'
+          ffmpeg: 'false'
+          fonts: 'false'
+
+      - name: Build judging data
+        # Merges the measured render numbers with the human verdicts in
+        # docs/gate1/verdicts.yaml. Non-fatal: a missing verdict is reported as
+        # `pending`, and a collection run must not fail just because nobody has
+        # judged the new slug yet.
+        run: |
+          set -euo pipefail
+          python scripts/chaosim.py gate1-report | tee gate1-run.log
+
+      - name: Upload judging data
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: gate1-report
+          # Contact sheets ride along so the numbers and the frames they came
+          # from download together. Retained longer than catalog-report because
+          # this is the evidence a gate decision was made on.
+          path: |
+            outputs/gate1/gate1.json
+            outputs/gate1/gate1.csv
+            docs/gate1/verdicts.yaml
+            docs/gate1/*_contact.png
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0   # png is already compressed
+
       - name: Commit
         run: |
           set -euo pipefail
@@ -187,5 +223,13 @@ jobs:
             echo "- collected: **${FOUND:-0}** contact sheet(s) into \`docs/gate1/\`"
             [ -n "${MISSING:-}" ] && echo "- missing: \`${MISSING}\`"
             echo ""
-            echo "Review them in \`docs/gate1/README.md\` on this branch."
+            if [ -f gate1-run.log ]; then
+              echo '```'
+              cat gate1-run.log
+              echo '```'
+              echo ""
+            fi
+            echo "Sheets: \`docs/gate1/README.md\` on this branch."
+            echo "Data: download the **gate1-report** artifact"
+            echo "(\`gate1.json\` / \`gate1.csv\` + the contact sheets they describe)."
           } >> "$GITHUB_STEP_SUMMARY"

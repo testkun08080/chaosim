@@ -203,6 +203,37 @@ def build_catalog(concepts: list[tuple[str, dict]], scenes: dict[str, dict],
     }
 
 
+CSV_FIELDS = [
+    "slug", "title", "scene_script", "duration_sec", "preset", "staged",
+    "params_declared", "params_live", "params_dead",
+    "errors", "warnings", "finding_codes", "has_gate1", "path",
+]
+
+
+def catalog_csv_rows(ctx: dict) -> list[dict]:
+    """Flatten the catalog context to one row per concept for spreadsheet review."""
+    rows = []
+    for e in ctx["entries"]:
+        rows.append({
+            "slug": e["slug"],
+            "title": e["title"],
+            "scene_script": e["scene"],
+            "duration_sec": e["duration_sec"],
+            "preset": e["preset"],
+            "staged": int(e["staged"]),
+            "params_declared": e["params_declared"],
+            "params_live": e["params_live"],
+            "params_dead": e["params_declared"] - e["params_live"],
+            "errors": e["errors"],
+            "warnings": e["warnings"],
+            # Space-separated so the cell stays one field without quoting games.
+            "finding_codes": " ".join(f["code"] for f in e["findings"]),
+            "has_gate1": int(e["has_gate1"]),
+            "path": e["path"],
+        })
+    return rows
+
+
 def collect_catalog(repo_root: Path = REPO_ROOT) -> dict:
     """Read the repo and build the catalog context."""
     from pipeline.planner import load_concept

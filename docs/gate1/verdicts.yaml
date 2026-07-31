@@ -1,0 +1,60 @@
+# Gate 1→2（画づくり承認）の判定記録。
+#
+# `chaosim.py gate1-report` がこれを読み、docs/gate1/ の実測値と突き合わせて
+# outputs/gate1/gate1.{json,csv} を出す。判定そのものは人が下すのでここは手で書く。
+#
+# verdict:
+#   pass    5項目すべて通過。Phase 2（バリエーション展開）へ進める
+#   hold    条件付き。指摘を直せば通る見込み
+#   rework  作り直しが要る（カメラ・マテリアル・シーン設計のどれか）
+#   fail    企画の核が画に出ていない
+#   pending 未判定（この行が無い slug は自動で pending 扱い）
+#
+# gate の5項目は docs/production-plan.md の Gate 1→2 に対応する。
+#   framing  9:16 でカメラアングル・フレーミングが決まっている
+#   look     マテリアル/ライティングの方向性が固まっている
+#   sim      シミュが壊れていない（めり込み・爆発・停止がない）
+#   hook     hook が冒頭数フレームで成立している
+#   duration 動きが想定尺に合っている
+# true=通過 / false=不通過 / null=この尺では判断保留
+#
+# 下の4本は preview 540x960・max_frames=180（6秒）のスライスで判定したもの。
+# 全本 duration を null にしてあるのは、企画本来の尺ではないため。
+
+paper_to_cloth:
+  verdict: hold
+  gate: {framing: true, look: true, sim: true, hook: true, duration: null}
+  note: >
+    面数ラベルが3Dに焼き込まれていて 16→1024 の進行が読める。4本中もっとも
+    企画として成立している。ただし被写体が 9:16 の中央45%ほどにしか乗っておらず
+    上下の余白が大きい。カメラを寄せれば通る見込み。なお camera_lens /
+    camera_distance / camera_height / camera_pitch_deg は scene に読まれていない
+    （catalog の dead-params 参照）ので、YAML 側の調整では直らない。
+
+cloth_by_faces:
+  verdict: rework
+  gate: {framing: false, look: false, sim: null, hook: false, duration: null}
+  note: >
+    camera_pitch_deg: 60 のせいで画面下40%が木箱の側面、上35%が空。箱の穴が
+    一度も見えず「穴に垂れ込む」という前提が画に出ていない。金マテリアルは
+    AgX + exposure -0.3 で彩度が飛び、薄いクリーム色に見える。変形が最後の
+    1枚にしか出ていないが、これは1段1.5秒に圧縮した影響もあるので sim は保留。
+
+ring_escape_5rings:
+  verdict: fail
+  gate: {framing: false, look: false, sim: false, hook: false, duration: null}
+  note: >
+    リングが4段しか画面に入っていない（ring_count は 5）。ほぼ真横から見ている
+    ため円環ではなくタイルの列に見え、同心円が回るというフォーマットの核が
+    画に出ていない。ボールは6枚中1枚にしか写らず、落下してすぐ画面外へ抜ける。
+    ring_escape.py は collect_impact_events を持たないので SFX の当て先も無い。
+
+magnetic_pendulum_ufo:
+  verdict: fail
+  gate: {framing: false, look: false, sim: false, hook: false, duration: null}
+  note: >
+    ボブと軌跡が右上の隅で切れている。3つの磁石の「あいだを彷徨う」動きに
+    なっておらず、磁石から離れた狭い範囲を小さく回るだけ。軌跡も発光して
+    見えない。runner.py が run_simulation() に params を渡さないため
+    bob_start_x/y・magnet_strength・spring・damping が全て無視されている。
+    先に params を通す改修をしない限り YAML 調整では絵が変わらない。

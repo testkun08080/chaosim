@@ -22,6 +22,28 @@ material / narration / composite / thumbnail と、それらを束ねる orchest
 | `docs/gate1/` | Phase 1 の画づくり（コンタクトシート） | `gate-review` 実行時 |
 | `docs/catalog/` | 企画とコードの整合（scene_script の実在・params の到達率・シーン契約） | `concepts/` か `scenes/` を触るたび自動 |
 
+### 判定データの保存先
+
+人が読むビューは `docs/` に、機械可読なデータは `outputs/` に出す。
+`outputs/` は gitignore なので、**CI では成果物はアーティファクト経由で受け取る**。
+
+| 生成物 | ローカル | CI | git |
+|---|---|---|---|
+| 企画カタログ（JSON/CSV） | `outputs/catalog/catalog.json` / `concepts.csv` | `catalog-report`（14日） | しない |
+| Phase 1 判定データ（JSON/CSV） | `outputs/gate1/gate1.json` / `gate1.csv` | `gate1-report`（30日） | しない |
+| **合否の記録** | `docs/gate1/verdicts.yaml` | 同左 | **する（人が手で書く）** |
+| 企画カタログ（Markdown） | `docs/catalog/README.md` | 同左 | する |
+
+判定の結論は `verdicts.yaml` だけが永続する。数字はいつでも再生成できるが、
+「なぜ不合格にしたか」は再生成できないため。CSV は BOM 付き UTF-8 で書くので
+Excel でそのまま開ける。
+
+```bash
+python scripts/chaosim.py catalog        # docs/catalog/ と outputs/catalog/
+python scripts/chaosim.py gate1-report   # outputs/gate1/
+python scripts/chaosim.py gate1-report --check   # 未判定が残っていれば exit 1
+```
+
 ## 使い方
 
 1. ローカルで企画を作り、YAML をコミットする。
@@ -103,6 +125,8 @@ GitHub-hosted ランナーは CPU 4コアのみで、1ジョブ6時間の上限�
 | artifact | 中身 |
 |---|---|
 | `sim-<slug>` | `outputs/renders/<slug>.{mp4,_events.json,_concept.json,_contact.png}` |
+| `catalog-report` | `outputs/catalog/{catalog.json,concepts.csv}` + `docs/catalog/README.md` |
+| `gate1-report` | `outputs/gate1/{gate1.json,gate1.csv}` + `docs/gate1/verdicts.yaml` + コンタクトシート |
 | `material-<slug>` | `outputs/material/<slug>/**` |
 | `narration-<slug>` | `outputs/audio/<slug>_narration.wav` |
 | `compose-<slug>` | `outputs/final/<slug>_final.mp4` |
