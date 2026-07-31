@@ -222,7 +222,7 @@ jobs:
           command -v blender >/dev/null || { echo "::error::blender not on PATH"; exit 1; }
           blender --version | head -n 1
           if [ "$STAGED" = "true" ]; then
-            echo "::warning::staged scene — render_staged() owns its own frame loop, so CHAOSIM_MAX_FRAMES does not apply. Watch the timeout."
+            echo "::notice::staged scene — CHAOSIM_MAX_FRAMES is honoured by shrinking stage_duration_sec, not by dropping stages, so every face_count still renders."
           fi
           mkdir -p outputs/renders
 

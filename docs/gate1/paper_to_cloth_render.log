@@ -1,0 +1,8 @@
+Blender 4.5.3 LTS (hash 67807e1800cc built 2025-09-09 01:38:15)
+CHAOSIM_MAX_FRAMES=180: truncating frame_end 720 -> 180
+Engine=CYCLES frames=1-180 res%=50 fps=30
+CHAOSIM_MAX_FRAMES=180: stage_duration_sec -> 1.500s x 4 stages
+Staged frame_end override -> 180
+Render complete: /home/runner/work/chaosim/chaosim/outputs/renders/paper_to_cloth.mp4
+Blender quit
+Running: /home/runner/blender/blender --background --python /home/runner/work/chaosim/chaosim/simulators/blender/runner.py -- /home/runner/work/chaosim/chaosim/outputs/renders/paper_to_cloth_concept.json /home/runner/work/chaosim/chaosim/outputs/renders/paper_to_cloth.mp4 preview

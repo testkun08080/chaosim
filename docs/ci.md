@@ -12,6 +12,37 @@ material / narration / composite / thumbnail と、それらを束ねる orchest
 |---|---|---|---|
 | `ci.yml` | push(main) / PR / 手動 | スタブモードで全工程を通し、配線と共通セットアップを検証 | 約2〜5分 |
 | `sim.yml` | 手動 / `workflow_call` | Blender シミュレーション＋レンダー | preview 6秒尺で約10〜20分 |
+| `gate-review.yml` | 手動 / `docs/gate1/slugs.txt` への push | 既存 sim 実行の `sim-<slug>` を再取得し、コンタクトシートを `docs/gate1/` に集めてコミット | 約30秒 |
+| `catalog.yml` | `concepts/` `scenes/` への push / PR / 手動 | 企画とシーンを突き合わせて `docs/catalog/` を再生成。error があれば失敗 | 約1分 |
+
+`docs/` 以下の生成ビュー:
+
+| ビュー | 何が分かるか | いつ更新されるか |
+|---|---|---|
+| `docs/gate1/` | Phase 1 の画づくり（コンタクトシート） | `gate-review` 実行時 |
+| `docs/catalog/` | 企画とコードの整合（scene_script の実在・params の到達率・シーン契約） | `concepts/` か `scenes/` を触るたび自動 |
+
+### 判定データの保存先
+
+人が読むビューは `docs/` に、機械可読なデータは `outputs/` に出す。
+`outputs/` は gitignore なので、**CI では成果物はアーティファクト経由で受け取る**。
+
+| 生成物 | ローカル | CI | git |
+|---|---|---|---|
+| 企画カタログ（JSON/CSV） | `outputs/catalog/catalog.json` / `concepts.csv` | `catalog-report`（14日） | しない |
+| Phase 1 判定データ（JSON/CSV） | `outputs/gate1/gate1.json` / `gate1.csv` | `gate1-report`（30日） | しない |
+| **合否の記録** | `docs/gate1/verdicts.yaml` | 同左 | **する（人が手で書く）** |
+| 企画カタログ（Markdown） | `docs/catalog/README.md` | 同左 | する |
+
+判定の結論は `verdicts.yaml` だけが永続する。数字はいつでも再生成できるが、
+「なぜ不合格にしたか」は再生成できないため。CSV は BOM 付き UTF-8 で書くので
+Excel でそのまま開ける。
+
+```bash
+python scripts/chaosim.py catalog        # docs/catalog/ と outputs/catalog/
+python scripts/chaosim.py gate1-report   # outputs/gate1/
+python scripts/chaosim.py gate1-report --check   # 未判定が残っていれば exit 1
+```
 
 ## 使い方
 
@@ -30,6 +61,11 @@ material / narration / composite / thumbnail と、それらを束ねる orchest
      `docs/production-plan.md` の Gate 1→2（画づくりの合否）をここで判断する
    - `<slug>_events.json` — SFX 用の衝突イベント
    - `<slug>_render.log` — 実行ログ
+4. 複数企画をまとめて見比べるときは **`gate-review`** を回す。
+   実行済みの sim から `sim-<slug>` を再取得して `docs/gate1/` にコミットするので、
+   zip を1本ずつ落とさずリポジトリ上でコンタクトシートを並べて判定できる
+   （レンダーはやり直さない）。対象は `docs/gate1/slugs.txt` で指定する。
+   mp4 はコミットしないので、動きを見るときは Artifacts から取る。
 
 ## プリセットとコストの制約
 
@@ -50,8 +86,12 @@ GitHub-hosted ランナーは CPU 4コアのみで、1ジョブ6時間の上限�
 - `high` / `ultra` は `allow_expensive: true` を付けない限りガードステップで即失敗する。
   6時間使い切ってから落ちるのを防ぐため。
 - `max_frames`（既定900）が `CHAOSIM_MAX_FRAMES` としてフレーム数を打ち切る。
-  ただし `render_staged()` を持つシーン（`paper_to_cloth` / `cloth_drop_faces`）は
-  自前で `frame_end` を決めるため対象外。
+  `render_staged()` を持つシーン（`paper_to_cloth` / `cloth_drop_faces`）にも効くが、
+  打ち切り方が違う。**段数（`face_counts`）は減らさず、1段あたりの
+  `stage_duration_sec` を縮めて上限に収める。** 段階シーンは「面数を上げるほど布になる」
+  という進行そのものが hook なので、段を落とすと判定材料にならないため。
+  例: `max_frames=180` × 4段 → 1段45フレーム（1.5秒）。
+  短すぎて動きが読めない場合は `max_frames` を上げて回し直す。
 
 **本番画質（`medium` 以上）はローカル実行を推奨。**
 
@@ -85,6 +125,8 @@ GitHub-hosted ランナーは CPU 4コアのみで、1ジョブ6時間の上限�
 | artifact | 中身 |
 |---|---|
 | `sim-<slug>` | `outputs/renders/<slug>.{mp4,_events.json,_concept.json,_contact.png}` |
+| `catalog-report` | `outputs/catalog/{catalog.json,concepts.csv}` + `docs/catalog/README.md` |
+| `gate1-report` | `outputs/gate1/{gate1.json,gate1.csv}` + `docs/gate1/verdicts.yaml` + コンタクトシート |
 | `material-<slug>` | `outputs/material/<slug>/**` |
 | `narration-<slug>` | `outputs/audio/<slug>_narration.wav` |
 | `compose-<slug>` | `outputs/final/<slug>_final.mp4` |

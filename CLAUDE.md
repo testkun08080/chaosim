@@ -16,7 +16,26 @@ python scripts/chaosim.py run concepts/sample_001_double_pendulum.yaml
 
 # Upload to YouTube
 python scripts/chaosim.py upload outputs/renders/double_pendulum_001.mp4
+
+# Cross-check every concept against its scene script (no render, seconds)
+python scripts/chaosim.py catalog          # docs/catalog/README.md + outputs/catalog/*.{json,csv}
+python scripts/chaosim.py catalog --check  # exit 1 on any error-level finding
+
+# Phase 1 judging data (render metrics + verdicts) -> outputs/gate1/*.{json,csv}
+python scripts/chaosim.py gate1-report
 ```
+
+## Concept/Scene Health
+`docs/catalog/README.md` is generated — never edit it. It reports which concepts point at a
+scene script that does not exist, and which `params:` keys never reach the code.
+That last one matters: `runner.py` calls `run_simulation()` with **no arguments**, so any
+scene that uses physics constants outside `setup_scene(params)` silently ignores its YAML.
+Check the catalog before tuning params — otherwise the edit does nothing.
+
+Human-readable views live in `docs/`; machine-readable data goes to `outputs/` (gitignored,
+so CI surfaces it as the `catalog-report` / `gate1-report` artifacts). The one judging
+artefact that IS committed is `docs/gate1/verdicts.yaml` — the pass/rework/fail record.
+Numbers can always be regenerated; the reason a concept was rejected cannot.
 
 ## Production Workflow (phased)
 Videos are produced through gated phases — see `docs/production-plan.md`:

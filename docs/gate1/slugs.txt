@@ -1,0 +1,6 @@
+# Concepts collected into this directory by the `gate-review` workflow.
+# One slug per line. Editing this file re-triggers the collection on push.
+ring_escape_5rings
+magnetic_pendulum_ufo
+paper_to_cloth
+cloth_by_faces
