@@ -166,6 +166,25 @@ press_crush_showdown:
     Hydraulic Press の画は「対象物が画面の主役でプレス面が上から入ってくる」
     構図なので、そこから逆算して数値を決め直すのが早い。
 
+sand_avalanche_asmr:
+  verdict: rework
+  gate: {framing: false, look: true, sim: false, hook: false, duration: null}
+  note: >
+    粒のマテリアルは良い。3000粒がオレンジ→黄のグラデーションで積まれていて、
+    ASMR系の「音が鳴りそう」な質感は出ている。look はこのままで良い。
+    落ちているのは構図とシミュ。
+    構図: sand_collapse.py のカメラが setup_scene 内に
+    location=(6,-6,4) / yaw 45 で直書きされており、この角度だとスタジオの
+    サイクロラマ（背景壁）が斜めに画面を横切って右6割を占める。砂山は左3割に
+    押し込まれた上に左端で切れている。9:16 の縦が全く使えていない。
+    シミュ: 6枚を通して粒がほとんど動いていない。壁が消えて雪崩が起きる
+    という前提の画になっていない。max_frames=180 なら壁消失の frame 30 は
+    1秒地点なので、2枚目以降は崩落後のはずだが崩れていない。
+    修正: まず sand_collapse.py をカメラ params 対応にする（他の新規シーンと
+    同じ setup_shorts_camera 方式）。yaw を 0 にして正面から、
+    include_backdrop=False で背景壁を外すのが早い。
+    そのうえで壁消失のキーフレームが効いているかを確認する。
+
 marble_elimination_race:
   verdict: fail
   gate: {framing: true, look: false, sim: false, hook: false, duration: null}
