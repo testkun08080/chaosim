@@ -1,0 +1,90 @@
+{
+  "events": [
+    {
+      "t": 0.3,
+      "type": "impact",
+      "object": "ball"
+    },
+    {
+      "t": 0.967,
+      "type": "impact",
+      "object": "ball"
+    },
+    {
+      "t": 1.033,
+      "type": "impact",
+      "object": "ball"
+    },
+    {
+      "t": 1.633,
+      "type": "impact",
+      "object": "ball"
+    },
+    {
+      "t": 1.7,
+      "type": "impact",
+      "object": "ball"
+    },
+    {
+      "t": 2.3,
+      "type": "impact",
+      "object": "ball"
+    },
+    {
+      "t": 2.367,
+      "type": "impact",
+      "object": "ball"
+    },
+    {
+      "t": 2.933,
+      "type": "impact",
+      "object": "ball"
+    },
+    {
+      "t": 3.0,
+      "type": "impact",
+      "object": "ball"
+    },
+    {
+      "t": 3.567,
+      "type": "impact",
+      "object": "ball"
+    },
+    {
+      "t": 3.633,
+      "type": "impact",
+      "object": "ball"
+    },
+    {
+      "t": 4.167,
+      "type": "impact",
+      "object": "ball"
+    },
+    {
+      "t": 4.233,
+      "type": "impact",
+      "object": "ball"
+    },
+    {
+      "t": 4.767,
+      "type": "impact",
+      "object": "ball"
+    },
+    {
+      "t": 5.333,
+      "type": "impact",
+      "object": "ball"
+    },
+    {
+      "t": 5.833,
+      "type": "impact",
+      "object": "ball"
+    },
+    {
+      "t": 5.9,
+      "type": "impact",
+      "object": "ball"
+    }
+  ],
+  "fps": 30
+}

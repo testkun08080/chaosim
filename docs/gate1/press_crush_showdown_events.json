@@ -1,0 +1,20 @@
+{
+  "events": [
+    {
+      "t": 0.033,
+      "type": "impact",
+      "object": "target_004"
+    },
+    {
+      "t": 0.133,
+      "type": "impact",
+      "object": "target_010"
+    },
+    {
+      "t": 0.233,
+      "type": "impact",
+      "object": "target_008"
+    }
+  ],
+  "fps": 30
+}

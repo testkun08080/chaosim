@@ -1,0 +1,25 @@
+{
+  "events": [
+    {
+      "t": 0.333,
+      "type": "impact",
+      "object": "projectile"
+    },
+    {
+      "t": 0.433,
+      "type": "impact",
+      "object": "shard_002"
+    },
+    {
+      "t": 0.5,
+      "type": "impact",
+      "object": "shard_012"
+    },
+    {
+      "t": 0.567,
+      "type": "impact",
+      "object": "shard_031"
+    }
+  ],
+  "fps": 30
+}

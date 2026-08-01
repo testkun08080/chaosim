@@ -1,0 +1,40 @@
+{
+  "events": [
+    {
+      "t": 0.4,
+      "type": "impact",
+      "object": "ring_6"
+    },
+    {
+      "t": 0.6,
+      "type": "impact",
+      "object": "ring_5"
+    },
+    {
+      "t": 0.767,
+      "type": "impact",
+      "object": "ring_4"
+    },
+    {
+      "t": 0.867,
+      "type": "impact",
+      "object": "ring_3"
+    },
+    {
+      "t": 1.0,
+      "type": "impact",
+      "object": "ring_2"
+    },
+    {
+      "t": 1.067,
+      "type": "impact",
+      "object": "ring_1"
+    },
+    {
+      "t": 1.167,
+      "type": "impact",
+      "object": "ring_0"
+    }
+  ],
+  "fps": 30
+}

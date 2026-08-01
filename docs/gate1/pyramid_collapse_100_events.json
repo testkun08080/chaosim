@@ -1,0 +1,50 @@
+{
+  "events": [
+    {
+      "t": 0.433,
+      "type": "impact",
+      "object": "wrecker"
+    },
+    {
+      "t": 0.5,
+      "type": "impact",
+      "object": "block_0003"
+    },
+    {
+      "t": 0.567,
+      "type": "impact",
+      "object": "block_0015"
+    },
+    {
+      "t": 0.633,
+      "type": "impact",
+      "object": "block_0018"
+    },
+    {
+      "t": 0.7,
+      "type": "impact",
+      "object": "block_0029"
+    },
+    {
+      "t": 0.767,
+      "type": "impact",
+      "object": "block_0045"
+    },
+    {
+      "t": 0.833,
+      "type": "impact",
+      "object": "block_0054"
+    },
+    {
+      "t": 0.9,
+      "type": "impact",
+      "object": "block_0072"
+    },
+    {
+      "t": 1.033,
+      "type": "impact",
+      "object": "block_0232"
+    }
+  ],
+  "fps": 30
+}

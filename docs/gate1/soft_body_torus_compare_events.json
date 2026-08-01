@@ -1,0 +1,15 @@
+{
+  "events": [
+    {
+      "t": 0.867,
+      "type": "impact",
+      "object": "dropper_0"
+    },
+    {
+      "t": 0.917,
+      "type": "impact",
+      "object": "dropper_1"
+    }
+  ],
+  "fps": 30
+}
