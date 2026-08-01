@@ -7,7 +7,47 @@
 > mp4 は Actions の `sim-<slug>` アーティファクトから取得する
 > （`outputs/` は意図的に gitignore なので動画はコミットしない）。
 
-生成: `gate-review` workflow — 2026-07-31 14:18 UTC
+生成: `gate-review` workflow — 2026-08-01 05:19 UTC
+
+## `marble_elimination_race`
+
+_コンタクトシートなし（レンダー失敗）_
+
+## `press_crush_showdown`
+
+_コンタクトシートなし（レンダー失敗）_
+
+## `glass_fracture_wall`
+
+_コンタクトシートなし（レンダー失敗）_
+
+## `soft_body_torus_compare`
+
+_コンタクトシートなし（レンダー失敗）_
+
+## `growing_ball_bounce`
+
+_コンタクトシートなし（レンダー失敗）_
+
+## `pyramid_collapse_100`
+
+_コンタクトシートなし（レンダー失敗）_
+
+## `funnel_vortex_marbles`
+
+_コンタクトシートなし（レンダー失敗）_
+
+## `double_spiral_domino`
+
+_コンタクトシートなし（レンダー失敗）_
+
+## `sand_avalanche_asmr`
+
+_コンタクトシートなし（レンダー失敗）_
+
+## `ring_escape_tall`
+
+_コンタクトシートなし（レンダー失敗）_
 
 ## `ring_escape_5rings`
 
