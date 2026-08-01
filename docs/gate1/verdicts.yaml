@@ -18,8 +18,171 @@
 #   duration 動きが想定尺に合っている
 # true=通過 / false=不通過 / null=この尺では判断保留
 #
-# 下の4本は preview 540x960・max_frames=180（6秒）のスライスで判定したもの。
-# 全本 duration を null にしてあるのは、企画本来の尺ではないため。
+# 全本 preview 540x960・max_frames=180（6秒）のスライスで判定したもの。
+# duration を全部 null にしてあるのは、企画本来の尺ではないため。
+
+# =====================================================================
+# Batch 2 — バズ企画10本（2026-08-01）
+#
+# 10本すべて sim.yml が成功し、CYCLES / 540x960 / 180フレームで焼けている。
+# レンダー基盤側の失敗はゼロ。落ちているのは全部シーン設計の中身。
+#
+# 今回の収穫は ring_escape_tall で、前回 framing/look とも false だったものが
+# 両方 true になった。utils.setup_shorts_camera が pitch からカメラ位置を
+# 導出するようにした効果が出ている。逆に「絵は出るがシミュが企画どおりに
+# 動いていない」型の不合格が主流になった。
+# =====================================================================
+
+ring_escape_tall:
+  verdict: hold
+  gate: {framing: true, look: true, sim: false, hook: true, duration: null}
+  note: >
+    今回のバッチで画づくりは最良。7枚のリングが楕円として読め、9:16 の縦を
+    使い切っている。色分けも段ごとに効いていて、前回 ring_escape_5rings が
+    「ほぼ真横でタイルの列に見える」「5枚中4枚しか入らない」で fail した点は
+    完全に解消した。
+    残る問題は1点だけで、これは前回から持ち越している設計上の欠陥。
+    ring_escape.py はリングを「半径 ring_radius の位置に置いた小ブロックの環」
+    として作っているため、円環の内側は素通しになっている。ボールは中心軸
+    (x=0,y=0) を落ちるので、どのリングにも一度も当たらずに落下しきる。
+    gap がどこにあるかは結果に影響していない。前回の judge が書いた
+    「落下してすぐ画面外へ抜ける」も同じ現象。
+    直し方は2択: (a) リングを「切り欠きのある円盤」にしてボールが面で受かる
+    ようにする、(b) ボールの初期位置を ring_radius 付近まで振ってリング壁に
+    当てる。フォーマットの核は (a) なので (a) を推す。
+
+pyramid_collapse_100:
+  verdict: hold
+  gate: {framing: false, look: true, sim: true, hook: true, duration: null}
+  note: >
+    冒頭2フレームは狙いどおり。285個のピラミッドが緑→黄のグラデーションで
+    きれいに積まれ、2枚目では鉄球が最下層を抜いて全体が自重で崩れている。
+    崩落そのものは破綻なし。
+    問題は演出の持続で、鉄球を全尺 wrecker_speed=7.0 の等速で走らせているため
+    ブロックを押したまま画面外へ運び去ってしまい、3〜6枚目が完全に空になる。
+    6秒スライスのうち実質1.5秒しか中身がない。
+    修正: 鉄球は衝突後すぐ止める（キーフレームを trigger_frame+α で止めるか、
+    速度を 2.5 前後まで落とす）。あわせて camera_distance 7.8 は引きすぎで
+    ピラミッドが画面高さの45%程度にしか乗っていないので 5.5 前後まで寄せる。
+
+growing_ball_bounce:
+  verdict: hold
+  gate: {framing: true, look: false, sim: true, hook: true, duration: null}
+  note: >
+    企画の核である「跳ねるたびに大きくなる」は完全に画に出ている。6枚を通して
+    ボールが小→大へ単調に育っていくのが一目で分かり、SFXイベントも17個
+    取れている（跳ねた瞬間そのもの）。今回のバッチでシミュが企画どおり
+    動いた数少ない1本。
+    落ちているのは look だけ。アリーナの壁を dark スタジオ上に
+    base_color 0.10/metallic 0.7 で置いたため背景と分離せず、箱がほぼ見えない。
+    結果としてボールが虚空で跳ねているように見え、「壁で跳ね返っている」
+    という因果が読めない。
+    修正: 壁を発光ぎみの明色にするか、studio を product に変えて壁を起こす。
+    ボールが橙で発光しているので、壁は寒色にすると分離が出る。
+
+funnel_vortex_marbles:
+  verdict: rework
+  gate: {framing: false, look: false, sim: false, hook: true, duration: null}
+  note: >
+    玉は 160 個ちゃんと出ていて発色も良く、冒頭から降り注ぐので hook は立つ。
+    ただしファネルが円錐になっていない。32枚のスラブが放射状にバラバラの角度で
+    突き出した「壊れた花」のような形状になっており、すり鉢の内壁として
+    機能していない。結果、玉は渦を巻かずに片側の谷に溜まって止まる。
+    コインボルテックスという企画の核が画に出ていない。
+    加えて被写体が中心から外れ、左端で切れている。
+    修正: スラブ方式をやめて円錐メッシュ（primitive_cone + ソリッド化、
+    collision_shape=MESH）で内壁を作るのが確実。スラブを続けるなら、
+    Y傾け→Z回しのオイラー合成ではなく、各スラブの回転行列を
+    「半径方向に垂直な軸まわりの傾け」として直接組む必要がある。
+
+double_spiral_domino:
+  verdict: fail
+  gate: {framing: false, look: true, sim: false, hook: false, duration: null}
+  note: >
+    ドミノが連鎖せず爆散している。原因は params の指定ミスで、シーン側のバグ
+    ではない。domino_chain.py の curve_radius は「螺旋」ではなく半径 r の
+    真円を描く（x=r*sinθ, y=-r*cosθ）。今回 domino_count=120 / spacing=0.3 を
+    curve_radius=2.2 に載せたため、必要な円周 120*0.3=36 に対して実際の円周は
+    2π*2.2=13.8 しかなく、列が同じ円の上を2.6周ぶん重なって生成される。
+    初期状態でドミノ同士がめり込んでいるのでソルバが弾き飛ばした。
+    修正: curve_radius >= count*spacing/(2π) を満たすこと。120枚 spacing 0.3 なら
+    r=5.8 以上。あるいは r=2.2 のままなら枚数を46枚以下に落とす。
+    色とマテリアルは良いので、この条件さえ直せば通る見込みが高い。
+    なお domino_chain.py はカメラが setup_scene 内に直書きのままなので、
+    円が大きくなると画角の再調整も要る。
+
+soft_body_torus_compare:
+  verdict: rework
+  gate: {framing: false, look: true, sim: false, hook: false, duration: null}
+  note: >
+    ガラスのトーラスと金のシリンダーというルックは出ている。落下と着地も動く。
+    だが肝心のソフトボディ変形が起きておらず、左右のトーラスが最後まで
+    完全に同一形状のまま。0% と 100% の差が画に一切出ていないので、
+    比較フォーマットとして成立していない。
+    goal_default = 1 - softness で右側は 0.0（完全ソフト）になるはずだが、
+    自重でたわみすらしていないため、ソフトボディのベイク自体が
+    走っていない可能性が高い。run_simulation で ptcache.bake_all を
+    呼んでいるが、rigidbody_world が無いシーンなのでこの呼び方では
+    ソフトボディのキャッシュが焼かれていないと見る。
+    修正: 各 SOFT_BODY モディファイアの point_cache を明示的に
+    bake する（override 付き ptcache.bake）か、フレームを順に frame_set して
+    depsgraph 評価でキャッシュを作る。
+    あわせて構図。2列で全幅 4.4 に対しカメラの可視幅は 3.49 しかなく、
+    左右のトーラスが両端で切れている。camera_distance を 9.5 前後に引くか
+    column_spacing を 1.8 まで詰める。
+
+glass_fracture_wall:
+  verdict: rework
+  gate: {framing: false, look: false, sim: false, hook: false, duration: null}
+  note: >
+    1枚目にはフレームとガラス面（放射状シャードウェブ）が写っており、
+    メッシュ生成自体は成功している。だが2枚目以降は枠だけの空カットが続く。
+    問題が3つ重なっている。
+    (1) 発射体の初期位置がカメラのほぼ真上。projectile_speed=12 / fps=30 で
+    impact_frame まで10フレームなので start_y = -4.0、camera_distance=4.6 と
+    ほぼ同じ位置に湧く。結果、赤い球が画面いっぱいに映って冒頭を潰している。
+    (2) crack_speed=9.0 が速すぎ、全シャードが約10フレーム以内に解放されて
+    一斉に落ちきる。亀裂が「走る」画にならない。
+    (3) 落ちたシャードが床に見えない。32サンプル・デノイズ無しでは
+    transmission 0.85 のガラスがほぼ黒に沈む。
+    修正: 発射体は impact_frame を 25〜30 に延ばして手前から入れる、
+    crack_speed を 2.0 前後に落とす、シャードは transmission を下げて
+    base_color を明るくする（preview で読める前提のマテリアルにする）。
+
+press_crush_showdown:
+  verdict: fail
+  gate: {framing: false, look: false, sim: false, hook: false, duration: null}
+  note: >
+    ラムのシリンダーが降りてきて床に着く画しか写っておらず、圧壊される
+    48個のブロックもプレス板も画面に出ていない。企画の核が丸ごと欠けている。
+    SFXイベントは3個出ているのでブロック自体は存在して横に押し出されている
+    が、カメラに入っていない。
+    target_size=0.3 のブロックを stack_radius=0.9 に2層で置いているだけなので
+    山が低すぎ（高さ約0.6）、camera_distance=8.0・可視高6.5 の画面では
+    床際の微小な点にしかならない。一方 ram は depth=6.0 の巨大な円柱で
+    画面を独占している。スケール設計そのものが破綻している。
+    修正: 寄る（camera_distance 3.5 前後）、ブロックを増やして山を高くする
+    （target_count を 150 前後、または target_size を上げる）、ram を短くする。
+    Hydraulic Press の画は「対象物が画面の主役でプレス面が上から入ってくる」
+    構図なので、そこから逆算して数値を決め直すのが早い。
+
+marble_elimination_race:
+  verdict: fail
+  gate: {framing: true, look: false, sim: false, hook: false, duration: null}
+  note: >
+    1枚目でトラック最上段にマーブルが並んでいるところまでは出るが、
+    2枚目以降マーブルが1個も残っていない。SFXイベントが0個で、
+    どのマーブルもランプ高さを一度も通過していないことが裏付けられる。
+    最初の1〜2フレームでトラック外へ消えている。
+    substeps_per_frame=10 でもトンネリングしているか、サイドレールの
+    位置がランプの傾きに追従していない（レールは rotation_y は与えているが
+    中心高さがランプ中心のままで、傾いたランプの端では隙間ができる）
+    のどちらか。後者が濃厚。
+    ジグザグのトラック形状自体は 9:16 に対して良い縦構図なので framing は可。
+    ただし dark スタジオ＋暗いランプでほぼシルエットなので look は要調整。
+    修正: レールをランプの子オブジェクトにして傾きごと追従させる、
+    マーブル半径に対してレール高さ wall_height=0.34 を上げる、
+    substeps をさらに上げる。
 
 paper_to_cloth:
   verdict: hold
