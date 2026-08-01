@@ -24,16 +24,19 @@ def setup_scene(params: dict):
     setup_camera(location=(0, -15, 5), rotation_degrees=(80, 0, 0))
 
 
-def run_simulation():
+def run_simulation(params: dict = None):
     import bpy
 
-    sigma = 10.0
-    rho = 28.0
-    beta = 2.667
-    n = 5
-    dt = 0.005
-    scale = 0.15
-    trail_width = 0.025
+    # Integrated here rather than in setup_scene, so runner.py hands params in
+    # via utils.call_run_simulation. Defaults match the previously hardcoded values.
+    params = params or {}
+    sigma = float(params.get("sigma", 10.0))
+    rho = float(params.get("rho", 28.0))
+    beta = float(params.get("beta", 2.667))
+    n = int(params.get("n_trajectories", 5))
+    dt = float(params.get("dt", 0.005))
+    scale = float(params.get("scale", 0.15))
+    trail_width = float(params.get("trail_width", 0.025))
 
     frames = bpy.context.scene.frame_end
     steps_per_frame = 3

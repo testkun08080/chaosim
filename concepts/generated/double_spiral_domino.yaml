@@ -1,0 +1,49 @@
+title: "120 Dominoes, One Tight Spiral"
+slug: double_spiral_domino
+simulator: blender
+scene_script: domino_chain
+duration_sec: 18
+description: >
+  120 rainbow dominoes wound into a tight spiral. One push at the outer end sends
+  the chain reaction curling inward, and the falling front stays on screen the
+  whole way because the spiral keeps folding back into frame.
+hook: "フレーム5で最初の1枚が倒れ、そこから連鎖が途切れずに巻き込んでいく"
+viral_angle: >
+  ドミノ連鎖は常時バズ枠で、10万ドミノ級のシミュレーションが繰り返し伸びている。
+  直線配置だと連鎖の先頭が画面外に逃げるが、螺旋なら常にフレーム内に留まるので
+  9:16 の縦画面と相性が良い。虹色のグラデーションは進行度が一目で分かるので
+  「どこまで進んだか」が視聴の指標になる。
+  既存の domino_chain シーンは全 params がコードに届いており、SFX イベント
+  （collect_impact_events）も実装済みで、この10本の中で最も確実に回る。
+references:
+  - "Domino Effect — 100,000 Domino Simulation / Chain Reaction (youtube.com/watch?v=QqkqHcCR7BQ)"
+  - "Satisfying Giant Dominoes Effect — Blender Rigid Body Simulation (youtube.com/watch?v=weUtCfPe4Qk)"
+  - "Domino — Chain Reaction with Dominos and Props (youtube.com/shorts/tfd22hPWk5o)"
+params:
+  domino_count: 120
+  spacing: 0.3
+  domino_height: 0.8
+  domino_width: 0.4
+  domino_depth: 0.1
+  curve_radius: 2.2
+render_preset: preview   # Phase 1 (vertical slice) — do not raise until gate passes
+music_mood: "upbeat, tempo locked to the falling rate, builds inward"
+caption: "120枚のドミノを螺旋に並べて一押し #shorts #dominos #satisfying"
+hashtags:
+  - dominos
+  - chainreaction
+  - satisfying
+  - physics
+  - shorts
+video_template: default_shorts
+narration:
+  enabled: false
+thumbnail:
+  style: vertical_cover
+  headline: 螺旋ドミノ
+
+status_note: >
+  既存シーン domino_chain の再利用。カメラは setup_scene 内で
+  location=(0,-15,8) / pitch 65 に固定されており params 化されていないため、
+  Phase 1 で画角が合わなければ curve_radius と domino_count で
+  スパイラルの直径を調整する（カメラではなく被写体側を合わせる）。

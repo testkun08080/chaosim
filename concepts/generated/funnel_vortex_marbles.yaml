@@ -1,0 +1,50 @@
+title: "160 Marbles Down the Vortex"
+slug: funnel_vortex_marbles
+simulator: blender
+scene_script: funnel_vortex
+duration_sec: 18
+description: >
+  160 small coloured spheres are poured into a wide steel cone. They spiral
+  inward, accelerating as the radius shrinks, and drain through the hole at the
+  bottom. Shot from steeply above so the spiral itself is the composition.
+hook: "フレーム1から玉が落ち始め、最初の1周が0.5秒以内に見える"
+viral_angle: >
+  科学館のコインボルテックスをそのままCG化したもの。角運動量保存で中心に近づく
+  ほど速くなるため、動きが勝手に盛り上がっていく。終端（全部落ちきる）と
+  始端（また注ぐ）が繋がるのでループ再生に向き、Shorts の完走・再視聴シグナルを
+  取りやすい。真上寄りの俯瞰にしているのは、水平カメラだと縁しか映らず
+  渦が読めないため。
+references:
+  - "Absurd Marble Run That Never Stops (youtube.com/watch?v=7Gshi-iDoZU) — ループ構造で完走率を稼ぐ設計"
+  - "Marble Run ASMR / Castle / Sand Satisfying (youtube.com/watch?v=7s3jhXy63Wg) — 大量小球のASMR需要"
+  - "The Most Satisfying Physics Simulations of 2025 (youtube.com/watch?v=1Y2lkiTFptw)"
+params:
+  ball_count: 160
+  ball_radius: 0.09
+  funnel_radius: 2.6
+  funnel_depth: 2.2
+  funnel_segments: 32
+  drain_radius: 0.45
+  spawn_spread: 0.75
+  spawn_frames: 40
+  restitution: 0.15
+  friction: 0.22
+  camera_distance: 6.8
+  camera_height: 0.0
+  camera_pitch_deg: 46
+  camera_lens: 38
+render_preset: preview   # Phase 1 (vertical slice) — do not raise until gate passes
+music_mood: "continuous rolling texture, rising pitch as the spiral tightens"
+caption: "160個の玉が渦に吸い込まれるだけの動画 #shorts #satisfying #asmr"
+hashtags:
+  - satisfying
+  - asmr
+  - simulation
+  - physics
+  - shorts
+video_template: default_shorts
+narration:
+  enabled: false
+thumbnail:
+  style: vertical_cover
+  headline: 渦に落ちる

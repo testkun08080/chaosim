@@ -1,0 +1,58 @@
+title: "Can the Ball Escape All 7 Rings?"
+slug: ring_escape_tall
+simulator: blender
+scene_script: ring_escape
+duration_sec: 14
+description: >
+  A ball drops into a vertical stack of 7 spinning rings, each with a gap cut out
+  of it. It only falls through a ring if the gap happens to line up as it arrives —
+  otherwise it bounces and waits. Rings spin at alternating speeds and directions.
+hook: "フレーム1でボールが最上段に落ちる。1枚目を抜けられるかが即座に分かる"
+viral_angle: >
+  「ボールは脱出できるか」型の同心回転リングは、専用ジェネレータ（ViralBalls,
+  BallSimulator）が生まれるほど定着したフォーマット。毎回結果が違うので
+  同じ企画を params だけ変えて量産でき、当たりを引くまで回せるのが運用上大きい。
+  リング数を5→7に増やしたのは、9:16 の縦を余らせないため。
+references:
+  - "ViralBalls — Free Satisfying Ball Physics Simulator (viralballs.com)"
+  - "\"Can the ball escape or not\" (youtube.com/shorts/iYUA2M1FC64)"
+  - "Marble Elimination Race (youtube.com/shorts/xAzi0k0LCGw) — 同系統の「勝ち残り」構造"
+params:
+  ring_count: 7
+  ring_radius: 1.0
+  ring_spacing: 0.95
+  ring_gap_deg: 62
+  ring_thickness: 0.085
+  segments_per_ring: 34
+  ball_radius: 0.15
+  ball_color: [1.0, 0.2, 0.15]
+  spin_turns: [1.5, -2.0, 1.0, -1.5, 2.5, -1.0, 1.75]
+  camera_distance: 11.5
+  camera_height: 0.0
+  camera_pitch_deg: 68
+  camera_lens: 38
+render_preset: preview   # Phase 1 (vertical slice) — do not raise until gate passes
+music_mood: "tense build, tick-like rhythm, release on each ring cleared"
+caption: "7枚のリングを全部抜けられる？ #shorts #satisfying #simulation #physics"
+hashtags:
+  - satisfying
+  - simulation
+  - physics
+  - shorts
+  - chainreaction
+video_template: default_shorts
+narration:
+  enabled: false
+thumbnail:
+  style: vertical_cover
+  headline: 全部抜けるか
+
+status_note: >
+  ring_escape_5rings が Gate 1 で fail した原因を潰した再設計版。
+  前回の指摘は「ほぼ真横から見ているため円環ではなくタイルの列に見える」
+  「5枚中4枚しか画面に入っていない」（docs/gate1/verdicts.yaml）。
+  対応として ring_escape.py にカメラ params を追加し、
+  utils.setup_shorts_camera で pitch からカメラ位置を導出するようにした
+  （従来は location と rotation が独立指定で、傾けても被写体を向いていなかった）。
+  pitch 68 で見下ろすのでリングが楕円として読める。あわせて spin_turns を
+  params 化し、collect_impact_events（リング通過をSFX起点にする）を追加した。

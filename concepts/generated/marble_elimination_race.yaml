@@ -1,0 +1,50 @@
+title: "24 Marbles, 6 Ramps — Who Reaches the Bottom First?"
+slug: marble_elimination_race
+simulator: blender
+scene_script: marble_race
+duration_sec: 18
+description: >
+  24 rainbow marbles are released at the top of a tall zig-zag switchback track.
+  They pile up at every corner, overtake each other on the straights and spill
+  into the catch basin at the bottom. The track is built vertically so the entire
+  race is visible in one 9:16 frame — no camera move needed.
+hook: "フレーム1で全マーブルが落下開始。最初のコーナーの詰まりが0.5秒以内に来る"
+viral_angle: >
+  マーブルレースは Shorts/TikTok の常設タグで、Jelle's Marble Runs が実写で確立し
+  Algodoo 系の2Dシミュがショートに移植して定着させたフォーマット。勝敗という
+  明確なゴールがあるため「最後まで見る理由」が構造的に組み込まれている。
+  縦に積んだトラックは 9:16 と相性が良く、全体を映したまま密度を出せる。
+references:
+  - "Marble Elimination Race (youtube.com/shorts/xAzi0k0LCGw) — エリミネーション型の代表"
+  - "Best Marble Races — #marblerace #blender #simulation (youtube.com/watch?v=RelW_1a_i0E)"
+  - "Jelle's Marble Runs — マーブルレースというジャンル自体の起点"
+params:
+  marble_count: 24
+  marble_radius: 0.16
+  ramp_count: 6
+  ramp_spacing: 1.35
+  ramp_tilt_deg: 14
+  ramp_length: 3.2
+  track_width: 1.5
+  wall_height: 0.34
+  restitution: 0.25
+  friction: 0.35
+  camera_distance: 12.2
+  camera_height: 0.0
+  camera_pitch_deg: 84
+  camera_lens: 34
+render_preset: preview   # Phase 1 (vertical slice) — do not raise until gate passes
+music_mood: "upbeat, percussive, tension rising toward the finish"
+caption: "24個のマーブル、どれが最初に落ちきる？ #shorts #marblerace #satisfying"
+hashtags:
+  - marblerace
+  - satisfying
+  - simulation
+  - physics
+  - shorts
+video_template: default_shorts
+narration:
+  enabled: false
+thumbnail:
+  style: vertical_cover
+  headline: どれが勝つ？

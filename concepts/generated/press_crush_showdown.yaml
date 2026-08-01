@@ -1,0 +1,49 @@
+title: "Hydraulic Press vs 48 Blocks"
+slug: press_crush_showdown
+simulator: blender
+scene_script: press_crush
+duration_sec: 15
+description: >
+  A steel plate descends at a constant, unhurried rate onto a loose stack of 48
+  coloured blocks. The stack buckles, blocks squirt out sideways past the edge of
+  the plate, and what is left packs down into a solid slab under the ram.
+hook: "フレーム12でプレスが降り始める。最初のブロックが横に飛ぶまで1秒かからない"
+viral_angle: >
+  Hydraulic Press Channel が登録1030万・総再生65.9億で確立したフォーマット。
+  固定カメラ＋等速の下降＋逃げ場のない対象、という3点だけで成立し、
+  「いつ潰れるか」を待つ時間そのものが視聴維持になる。CG化する利点は、
+  実写では危険すぎる量・素材を自由に置けること。
+  等速キーフレーム（イージングなし）にしているのは、油圧ラムは加速しないため。
+references:
+  - "Hydraulic Press Channel (youtube.com/@HydraulicPressChannel) — 登録1030万 / 総再生65.9億"
+  - "Crushing it: the hydraulic press's decade of success (blog.youtube) — ジャンル成立の解説"
+  - "Non-Newtonian Fluid vs Hydraulic Press (youtube.com/shorts/viymt2drs9s) — ショート派生形"
+params:
+  target_count: 48
+  target_size: 0.3
+  stack_radius: 0.9
+  plate_size: 3.2
+  press_speed: 0.055
+  press_start_height: 4.2
+  press_stop_height: 0.32
+  hold_frames: 12
+  friction: 0.6
+  camera_distance: 8.0
+  camera_height: 0.0
+  camera_pitch_deg: 82
+  camera_lens: 42
+render_preset: preview   # Phase 1 (vertical slice) — do not raise until gate passes
+music_mood: "low mechanical hum, rising pressure, hard crunch on contact"
+caption: "48個のブロックが潰れるまで #shorts #hydraulicpress #satisfying"
+hashtags:
+  - hydraulicpress
+  - satisfying
+  - destruction
+  - physics
+  - shorts
+video_template: default_shorts
+narration:
+  enabled: false
+thumbnail:
+  style: bold_headline
+  headline: 全部潰れる

@@ -27,13 +27,21 @@ def setup_scene(params: dict):
     setup_camera(location=(0, -12, 0), rotation_degrees=(90, 0, 0))
 
 
-def run_simulation():
+def run_simulation(params: dict = None):
     import bpy
     import math
 
-    n = 10
-    L1, L2 = 1.5, 1.2
-    m1, m2 = 1.0, 0.8
+    # The integrator lives here rather than in setup_scene, so runner.py hands
+    # params in via utils.call_run_simulation. Defaults match the values this
+    # script used while the YAML was inert.
+    params = params or {}
+    n = int(params.get("pendulum_count", 10))
+    L1 = float(params.get("arm1_length", 1.5))
+    L2 = float(params.get("arm2_length", 1.2))
+    m1 = float(params.get("mass1", 1.0))
+    m2 = float(params.get("mass2", 0.8))
+    angle1_deg = float(params.get("initial_angle1_deg", 120))
+    angle2_deg = float(params.get("initial_angle2_deg", 90))
     g = 9.81
     dt = 1.0 / 60.0
     frames = bpy.context.scene.frame_end
@@ -47,8 +55,8 @@ def run_simulation():
 
     for i in range(n):
         angle_offset = math.radians(i * 0.05)
-        th1 = math.radians(120) + angle_offset
-        th2 = math.radians(90)
+        th1 = math.radians(angle1_deg) + angle_offset
+        th2 = math.radians(angle2_deg)
         w1, w2 = 0.0, 0.0
         positions = []
 

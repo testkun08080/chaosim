@@ -172,13 +172,15 @@ def _setup_camera(params: dict | None = None):
     sys.path.insert(0, str(_Path(__file__).parent.parent))
     from utils import setup_camera
 
-    p = params or {}
+    params = params or {}
     # Closer + wider than the old 45mm/3.8m telephoto look.
     # Explicit euler (no Track To) keeps the hanging sheet face-on.
-    lens = float(p.get("camera_lens", 24.0))
-    dist = float(p.get("camera_distance", 2.0))
-    height = float(p.get("camera_height", 0.3))
-    pitch = float(p.get("camera_pitch_deg", 86.0))
+    # Read through `params` and not an alias: pipeline/catalog.py only counts
+    # `params.get("literal")`, so an alias reads as a dead param in the health view.
+    lens = float(params.get("camera_lens", 24.0))
+    dist = float(params.get("camera_distance", 2.0))
+    height = float(params.get("camera_height", 0.3))
+    pitch = float(params.get("camera_pitch_deg", 86.0))
 
     cam = setup_camera(
         location=(0.0, -dist, height),
