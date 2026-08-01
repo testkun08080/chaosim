@@ -7,7 +7,7 @@
 > mp4 は Actions の `sim-<slug>` アーティファクトから取得する
 > （`outputs/` は意図的に gitignore なので動画はコミットしない）。
 
-生成: `gate-review` workflow — 2026-08-01 06:45 UTC
+生成: `gate-review` workflow — 2026-08-01 06:51 UTC
 
 ## `marble_elimination_race`
 
@@ -73,6 +73,16 @@ CHAOSIM_MAX_FRAMES=180: truncating frame_end 450 -> 180
 Engine=CYCLES frames=1-180 res%=50 fps=30
 Wrote 9 SFX events -> /home/runner/work/chaosim/chaosim/outputs/renders/pyramid_collapse_100_events.json
 Render complete: /home/runner/work/chaosim/chaosim/outputs/renders/pyramid_collapse_100.mp4
+```
+
+## `funnel_vortex_marbles`
+
+![funnel_vortex_marbles](./funnel_vortex_marbles_contact.png)
+
+```
+CHAOSIM_MAX_FRAMES=180: truncating frame_end 540 -> 180
+Engine=CYCLES frames=1-180 res%=50 fps=30
+Render complete: /home/runner/work/chaosim/chaosim/outputs/renders/funnel_vortex_marbles.mp4
 ```
 
 ## `double_spiral_domino`
