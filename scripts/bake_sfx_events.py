@@ -50,7 +50,9 @@ spec = importlib.util.spec_from_file_location("scene", scene_file)
 mod = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(mod)
 mod.setup_scene(params)
-mod.run_simulation()
+sys.path.insert(0, str(scene_file.parent.parent))
+from utils import call_run_simulation  # noqa: E402
+call_run_simulation(mod, params)
 
 if not hasattr(mod, "collect_impact_events"):
     events = []

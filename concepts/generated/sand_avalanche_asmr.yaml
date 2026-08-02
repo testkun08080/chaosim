@@ -1,0 +1,47 @@
+title: "Sand Wall Collapse — 3000 Grains"
+slug: sand_avalanche_asmr
+simulator: blender
+scene_script: sand_collapse
+duration_sec: 15
+description: >
+  A tall column of 3000 granular particles is held up by an invisible wall. The
+  wall vanishes and the whole stack avalanches sideways, running out into a slope
+  and settling at its angle of repose.
+hook: "フレーム30で壁が消え、崩落が始まるまで一瞬の静止がある"
+viral_angle: >
+  砂・粒状の崩落は ASMR 系で安定した需要があり、マーブルラン ASMR や砂の
+  ピラミッド崩しといった実写フォーマットが継続的に伸びている。粒が多いほど
+  「音が鳴りそう」に見えるのが効いていて、CG でも粒数を上げるだけで効果が出る。
+  崩れ始める前の静止フレームを残しているのは、そこが視聴者の身構えになるため。
+references:
+  - "Marble Run ASMR / Castle / Sand Satisfying (youtube.com/watch?v=7s3jhXy63Wg)"
+  - "Marble Run Race ASMR Sand Pyramid Survival (youtube.com/watch?v=6RBKWQOiMVk)"
+  - "The Most Satisfying Simulations of 2025 (youtube.com/watch?v=H4ePSTpwEf8) — 粒状シミュが定番構成"
+params:
+  particle_count: 3000
+  particle_radius: 0.05
+  stack_height: 4.5
+  restitution: 0.08
+  friction: 0.85
+render_preset: preview   # Phase 1 (vertical slice) — do not raise until gate passes
+music_mood: "granular ASMR rush, soft and dry, no melody"
+caption: "3000粒の砂の壁が崩れるだけ #shorts #asmr #satisfying #simulation"
+hashtags:
+  - asmr
+  - satisfying
+  - simulation
+  - physics
+  - shorts
+video_template: default_shorts
+narration:
+  enabled: false
+thumbnail:
+  style: vertical_cover
+  headline: 3000粒
+
+status_note: >
+  既存シーン sand_collapse の再利用。sample_003 が宣言している color_gradient は
+  シーン側が読んでいないデッド params なので、この企画では宣言していない
+  （docs/catalog/README.md 参照）。カメラは setup_scene 内で
+  location=(6,-6,4) / pitch 70 / yaw 45 に固定。粒数3000は preview でも
+  ベイクが重いので、6秒スライスで時間超過するなら particle_count を下げる。

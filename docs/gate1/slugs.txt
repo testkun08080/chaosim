@@ -1,5 +1,19 @@
 # Concepts collected into this directory by the `gate-review` workflow.
 # One slug per line. Editing this file re-triggers the collection on push.
+
+# --- Phase 1 batch 2: the ten viral-format concepts ---
+marble_elimination_race
+press_crush_showdown
+glass_fracture_wall
+soft_body_torus_compare
+growing_ball_bounce
+pyramid_collapse_100
+funnel_vortex_marbles
+double_spiral_domino
+sand_avalanche_asmr
+ring_escape_tall
+
+# --- Phase 1 batch 1: kept so the earlier verdicts stay reviewable ---
 ring_escape_5rings
 magnetic_pendulum_ufo
 paper_to_cloth

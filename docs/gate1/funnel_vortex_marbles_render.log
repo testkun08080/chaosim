@@ -1,0 +1,6 @@
+Blender 4.5.3 LTS (hash 67807e1800cc built 2025-09-09 01:38:15)
+CHAOSIM_MAX_FRAMES=180: truncating frame_end 540 -> 180
+Engine=CYCLES frames=1-180 res%=50 fps=30
+Render complete: /home/runner/work/chaosim/chaosim/outputs/renders/funnel_vortex_marbles.mp4
+Blender quit
+Running: /home/runner/blender/blender --background --python /home/runner/work/chaosim/chaosim/simulators/blender/runner.py -- /home/runner/work/chaosim/chaosim/outputs/renders/funnel_vortex_marbles_concept.json /home/runner/work/chaosim/chaosim/outputs/renders/funnel_vortex_marbles.mp4 preview

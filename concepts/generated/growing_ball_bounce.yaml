@@ -1,0 +1,51 @@
+title: "The Ball Grows Every Bounce"
+slug: growing_ball_bounce
+simulator: blender
+scene_script: growing_ball
+duration_sec: 20
+description: >
+  A glowing ball ricochets around a tall closed arena. Every wall contact makes it
+  a little bigger, so the bounces get shorter and land more often, until the ball
+  is nearly wall-to-wall and can barely move. Zero gravity keeps it pinballing so
+  the clip loops cleanly.
+hook: "フレーム1から跳ね始める。2バウンド目には既に目に見えて大きくなっている"
+viral_angle: >
+  ViralBalls 系「跳ねるたびに大きくなるボール」の直系。視聴者が常に次の衝突を
+  半秒先読みしている状態を作れるのが強みで、TikTok/Shorts の満足系で最も
+  完走率が取れる予測ループ構造。等速の拡大なので「いつ詰まるか」という
+  終着点が視聴者側に見えており、そこまで見たくなる。
+  無重力にしてあるのはループ点を作るため（落ち切って止まらない）。
+references:
+  - "ViralBalls — Free Satisfying Ball Physics Simulator (viralballs.com) — このフォーマット専用のジェネレータが存在するほど定着"
+  - "Unbelievable 3D Physics Simulation! (youtube.com/shorts/EP5f4zcHNvg) — 満足系ボール物理のショート"
+  - "The Science Behind Why Satisfying Videos Go Viral (viralballs.com/en/blog) — 予測ループの解説"
+params:
+  start_radius: 0.12
+  growth_rate: 1.085
+  max_bounces: 40
+  arena_width: 2.6
+  arena_height: 4.6
+  wall_thickness: 0.12
+  initial_speed: 7.5
+  initial_angle_deg: 63
+  gravity: 0.0
+  ball_color: [1.0, 0.45, 0.1]
+  camera_distance: 6.5
+  camera_height: 0.0
+  camera_pitch_deg: 90
+  camera_lens: 40
+render_preset: preview   # Phase 1 (vertical slice) — do not raise until gate passes
+music_mood: "clean synth pings on each bounce, tempo rising with the hit rate"
+caption: "跳ねるたびに大きくなるボール #shorts #satisfying #simulation #physics"
+hashtags:
+  - satisfying
+  - simulation
+  - physics
+  - asmr
+  - shorts
+video_template: default_shorts
+narration:
+  enabled: false
+thumbnail:
+  style: vertical_cover
+  headline: どこまで育つ？

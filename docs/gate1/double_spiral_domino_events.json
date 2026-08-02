@@ -1,0 +1,105 @@
+{
+  "events": [
+    {
+      "t": 0.5,
+      "type": "impact",
+      "object": "domino_45"
+    },
+    {
+      "t": 0.55,
+      "type": "impact",
+      "object": "domino_52"
+    },
+    {
+      "t": 0.65,
+      "type": "impact",
+      "object": "domino_92"
+    },
+    {
+      "t": 0.75,
+      "type": "impact",
+      "object": "domino_1"
+    },
+    {
+      "t": 0.8,
+      "type": "impact",
+      "object": "domino_10"
+    },
+    {
+      "t": 0.9,
+      "type": "impact",
+      "object": "domino_101"
+    },
+    {
+      "t": 1.0,
+      "type": "impact",
+      "object": "domino_103"
+    },
+    {
+      "t": 1.05,
+      "type": "impact",
+      "object": "domino_104"
+    },
+    {
+      "t": 1.1,
+      "type": "impact",
+      "object": "domino_105"
+    },
+    {
+      "t": 1.2,
+      "type": "impact",
+      "object": "domino_107"
+    },
+    {
+      "t": 1.25,
+      "type": "impact",
+      "object": "domino_108"
+    },
+    {
+      "t": 1.3,
+      "type": "impact",
+      "object": "domino_109"
+    },
+    {
+      "t": 1.35,
+      "type": "impact",
+      "object": "domino_11"
+    },
+    {
+      "t": 1.45,
+      "type": "impact",
+      "object": "domino_111"
+    },
+    {
+      "t": 1.5,
+      "type": "impact",
+      "object": "domino_112"
+    },
+    {
+      "t": 1.55,
+      "type": "impact",
+      "object": "domino_113"
+    },
+    {
+      "t": 1.6,
+      "type": "impact",
+      "object": "domino_114"
+    },
+    {
+      "t": 1.7,
+      "type": "impact",
+      "object": "domino_116"
+    },
+    {
+      "t": 1.75,
+      "type": "impact",
+      "object": "domino_117"
+    },
+    {
+      "t": 1.8,
+      "type": "impact",
+      "object": "domino_118"
+    }
+  ],
+  "fps": 30
+}

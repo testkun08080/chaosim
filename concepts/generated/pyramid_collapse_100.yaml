@@ -1,0 +1,49 @@
+title: "285-Block Pyramid vs One Wrecking Ball"
+slug: pyramid_collapse_100
+simulator: blender
+scene_script: pyramid_collapse
+duration_sec: 15
+description: >
+  A nine-layer pyramid of 285 coloured blocks stands still for a beat. A steel
+  wrecking sphere rolls in from the left and takes out the base layer. The whole
+  structure drops into itself and spills across the floor.
+hook: "フレーム14で鉄球が最下層に到達。そこから全体が自重で落ちる"
+viral_angle: >
+  「積み上げたものが一撃で崩れる」は破壊系の中でも最も説明不要なフォーマット。
+  10万ドミノ級の物量ショートと同じ快感を、単一構造物に圧縮してショート尺に収める。
+  下から抜くので崩落が上まで伝播し、6秒スライスでも変化が見える。
+  ピラミッド型にしたのは 9:16 で縦の高さと底面の広がりが両方収まるため。
+references:
+  - "Domino Effect — 100,000 Domino Simulation / Chain Reaction (youtube.com/watch?v=QqkqHcCR7BQ) — 物量崩壊の代表"
+  - "The Most Satisfying Simulations of 2025 (youtube.com/watch?v=H4ePSTpwEf8) — rigid body 崩壊が定番構成"
+  - "Satisfying Giant Dominoes Effect — Blender Rigid Body Simulation (youtube.com/watch?v=weUtCfPe4Qk)"
+params:
+  layer_count: 9
+  block_size: 0.34
+  block_gap: 0.015
+  block_mass: 0.12
+  friction: 0.72
+  restitution: 0.02
+  trigger_frame: 14
+  wrecker_radius: 0.42
+  wrecker_speed: 7.0
+  wrecker_height: 0.5
+  camera_distance: 7.8
+  camera_height: 0.0
+  camera_pitch_deg: 80
+  camera_lens: 40
+render_preset: preview   # Phase 1 (vertical slice) — do not raise until gate passes
+music_mood: "single low impact, then a long granular collapse tail"
+caption: "285個のブロックが一撃で崩れる #shorts #satisfying #destruction #physics"
+hashtags:
+  - satisfying
+  - destruction
+  - simulation
+  - physics
+  - shorts
+video_template: default_shorts
+narration:
+  enabled: false
+thumbnail:
+  style: bold_headline
+  headline: 一撃で崩落

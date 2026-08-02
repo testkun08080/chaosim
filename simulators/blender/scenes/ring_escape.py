@@ -21,6 +21,10 @@ Params:
   ball_radius: float (default 0.16)
   ball_start_height: float (default None)   default = just above the top ring
   ball_color: [r, g, b] (default warm red)
+  camera_distance: float (default scales with the stack height)
+  camera_height: float (default 0)          shifts the aim point up/down
+  camera_pitch_deg: float (default 68)      90 = level, smaller looks down
+  camera_lens: float (default 38)
 """
 
 import sys
@@ -30,7 +34,7 @@ sys.path.insert(0, str(__import__("pathlib").Path(__file__).parent.parent))
 def setup_scene(params: dict):
     import bpy
     import math
-    from utils import clear_scene, setup_studio, setup_camera
+    from utils import clear_scene, setup_studio, setup_shorts_camera
 
     clear_scene()
     setup_studio(style="product", center=(0, 0, 0), scale=1.4, include_backdrop=True)
@@ -43,9 +47,20 @@ def setup_scene(params: dict):
     seg_count = params.get("segments_per_ring", 28)
     ball_r = params.get("ball_radius", 0.16)
     ball_color = params.get("ball_color", [1.0, 0.2, 0.15])
+    spin_turns = params.get("spin_turns", [])
 
     stack_height = (n_rings - 1) * spacing
-    setup_camera(location=(0, -9, stack_height / 2), rotation_degrees=(80, 0, 0))
+    # Gate 1 rejected the previous framing: pitch 80 read as a stack of tiles rather
+    # than rings, and only 4 of 5 rings fit. Default to a steeper look-down so the
+    # rings read as ellipses, and pull back far enough for the whole stack plus the
+    # ball's drop-in headroom.
+    setup_shorts_camera(
+        center=(0, 0, stack_height / 2),
+        distance=params.get("camera_distance", stack_height * 1.5 + 3.0),
+        height=params.get("camera_height", 0.0),
+        pitch_deg=params.get("camera_pitch_deg", 68.0),
+        lens=params.get("camera_lens", 38.0),
+    )
 
     ring_colors = [
         (0.2, 0.7, 1.0, 1), (1.0, 0.3, 0.5, 1), (0.3, 1.0, 0.4, 1),
@@ -107,7 +122,10 @@ def setup_scene(params: dict):
         ring.rigid_body.kinematic = True
         ring.rigid_body.collision_shape = "MESH"
 
-        turn = 1.5 if i % 2 == 0 else -1.5
+        if i < len(spin_turns):
+            turn = float(spin_turns[i])
+        else:
+            turn = 1.5 if i % 2 == 0 else -1.5
         scene = bpy.context.scene
         ring.rotation_euler[2] = 0
         ring.keyframe_insert("rotation_euler", index=2, frame=scene.frame_start)
@@ -162,3 +180,55 @@ def run_simulation():
             bpy.ops.ptcache.bake(bake=True)
     except Exception:
         bpy.ops.ptcache.bake_all(bake=True)
+
+
+def collect_impact_events(min_interval: float = 0.05, max_events: int = 20) -> list:
+    """Emit one event each time the ball drops past a ring's height.
+
+    Gate 1 flagged that this scene had no SFX anchor at all. Ring crossings are the
+    beats the format is built around, so they are what Phase 3 should hit.
+    Rigid-body transforms do not update ``location``, so read the evaluated object.
+    """
+    import bpy
+
+    scene = bpy.context.scene
+    fps = float(scene.render.fps) or 30.0
+    depsgraph = bpy.context.evaluated_depsgraph_get()
+
+    ball = bpy.data.objects.get("ball")
+    rings = sorted(
+        [o for o in bpy.data.objects if o.name.startswith("ring_")],
+        key=lambda o: o.location.z,
+        reverse=True,
+    )
+    if ball is None or not rings:
+        return []
+
+    pending = [(r.name, r.location.z) for r in rings]
+    events = []
+    prev_z = None
+
+    for frame in range(scene.frame_start, scene.frame_end + 1):
+        scene.frame_set(frame)
+        depsgraph.update()
+        z = ball.evaluated_get(depsgraph).matrix_world.translation.z
+        if prev_z is not None:
+            t = (frame - scene.frame_start) / fps
+            remaining = []
+            for name, ring_z in pending:
+                if prev_z > ring_z >= z:
+                    events.append({"t": round(t, 3), "type": "impact", "object": name})
+                else:
+                    remaining.append((name, ring_z))
+            pending = remaining
+        prev_z = z
+
+    events.sort(key=lambda e: e["t"])
+    thinned = []
+    for ev in events:
+        if thinned and (ev["t"] - thinned[-1]["t"]) < min_interval:
+            continue
+        thinned.append(ev)
+        if len(thinned) >= max_events:
+            break
+    return thinned

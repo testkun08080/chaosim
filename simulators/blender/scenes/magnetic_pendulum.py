@@ -78,20 +78,19 @@ def setup_scene(params: dict):
     plate.data.materials.append(mat)
 
 
-def run_simulation():
+def run_simulation(params: dict = None):
     import bpy
     import math
 
-    # NOTE: params aren't passed into run_simulation by runner.py (same
-    # limitation as double_pendulum.py) — physics constants are hardcoded
-    # here to sensible defaults. Wire params through if you need per-concept
-    # tuning to actually take effect.
-    n_magnets = 3
-    magnet_r = 1.2
-    bob_h = 1.4
-    spring = 0.35
-    damping = 0.18
-    strength = 0.55
+    params = params or {}
+    n_magnets = int(params.get("magnet_count", 3))
+    magnet_r = float(params.get("magnet_radius", 1.2))
+    bob_h = float(params.get("bob_height", 1.4))
+    spring = float(params.get("spring", 0.35))
+    damping = float(params.get("damping", 0.18))
+    strength = float(params.get("magnet_strength", 0.55))
+    start_x = float(params.get("bob_start_x", 0.55))
+    start_y = float(params.get("bob_start_y", 0.25))
     dt = 1.0 / 60.0
     frames = bpy.context.scene.frame_end
 
@@ -100,7 +99,7 @@ def run_simulation():
         angle = (2 * math.pi / n_magnets) * i
         magnets.append((magnet_r * math.cos(angle), magnet_r * math.sin(angle)))
 
-    x, y = 0.55, 0.25
+    x, y = start_x, start_y
     vx, vy = 0.0, 0.0
     positions = []
 

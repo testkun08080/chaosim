@@ -121,6 +121,70 @@ def setup_camera(location=(0, -8, 3), rotation_degrees=(75, 0, 0)):
     return cam
 
 
+def setup_shorts_camera(center=(0.0, 0.0, 0.0), distance=8.0, height=0.0,
+                        pitch_deg=78.0, lens=40.0):
+    """Orbit a camera around ``center`` so it always aims at it.
+
+    Four Gate 1 rejections in docs/gate1/verdicts.yaml were framing failures caused
+    by a hardcoded location/rotation pair that did not actually point at the subject.
+    Deriving the position from the pitch keeps the aim correct at any angle.
+
+    ``pitch_deg`` is the X rotation, matching setup_camera: 90 is level, smaller
+    looks down. ``height`` shifts the aim point up or down, which is how you bias a
+    tall subject inside a 9:16 frame.
+
+    Callers pass values in from their own ``params.get("camera_*")`` reads — keeping
+    those literals in the scene file is what makes ``pipeline/catalog.py`` count them
+    as reaching code.
+    """
+    import math
+
+    pitch = float(pitch_deg)
+    rad = math.radians(pitch)
+    dist = float(distance)
+    cx, cy, cz = center[0], center[1], center[2] + float(height)
+
+    cam = setup_camera(
+        location=(cx, cy - dist * math.sin(rad), cz + dist * math.cos(rad)),
+        rotation_degrees=(pitch, 0.0, 0.0),
+    )
+    cam.data.lens = float(lens)
+    return cam
+
+
+def frame_height_at(distance: float, lens: float = 40.0, sensor: float = 36.0) -> float:
+    """World-space height visible at ``distance`` for a 9:16 render.
+
+    Blender's AUTO sensor fit maps the sensor width onto the longer image axis, which
+    for a 1080x1920 Shorts frame is the vertical one. Handy for sanity-checking that a
+    subject fits before burning a render.
+    """
+    import math
+
+    return 2.0 * float(distance) * math.tan(math.atan(float(sensor) / (2.0 * float(lens))))
+
+
+def call_run_simulation(module, params: dict):
+    """Call ``module.run_simulation``, passing ``params`` only if it takes an argument.
+
+    ``runner.py`` historically called this with no arguments, so every scene that
+    kept its physics constants inside ``run_simulation()`` silently ignored its YAML
+    (see the dead-params findings in docs/catalog/README.md). New scenes declare
+    ``run_simulation(params=None)``; the older zero-argument ones still work.
+    """
+    import inspect
+
+    fn = module.run_simulation
+    try:
+        positional = [
+            p for p in inspect.signature(fn).parameters.values()
+            if p.kind in (p.POSITIONAL_ONLY, p.POSITIONAL_OR_KEYWORD, p.VAR_POSITIONAL)
+        ]
+    except (TypeError, ValueError):
+        positional = []
+    return fn(params) if positional else fn()
+
+
 def _ensure_studio_collection():
     import bpy
 

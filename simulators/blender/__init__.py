@@ -8,4 +8,11 @@ AVAILABLE_SCENES = [
     "cloth_drop_faces",
     "magnetic_pendulum",
     "ring_escape",
+    "marble_race",
+    "press_crush",
+    "glass_fracture_wall",
+    "soft_body_torus_compare",
+    "growing_ball",
+    "pyramid_collapse",
+    "funnel_vortex",
 ]

@@ -171,7 +171,11 @@ if hasattr(scene_module, "render_staged"):
     events_path.write_text(json.dumps({"events": []}), encoding="utf-8")
 else:
     scene_module.setup_scene(params)
-    scene_module.run_simulation()
+    # Scenes that keep physics constants in run_simulation() need params here;
+    # call_run_simulation inspects the signature so zero-arg scenes still work.
+    sys.path.insert(0, str(Path(__file__).parent))
+    from utils import call_run_simulation
+    call_run_simulation(scene_module, params)
 
     if hasattr(scene_module, "collect_impact_events"):
         try:
