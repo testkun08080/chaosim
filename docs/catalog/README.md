@@ -26,25 +26,25 @@ error / warning の多い順。
 | [`sample_002_fluid_ink`](#sample_002_fluid_ink) | `fluid_ink` | 20s | high | 4/5 | ⚠️ warn 1 |
 | [`sample_003_sand_collapse`](#sample_003_sand_collapse) | `sand_collapse` | 25s | high | 5/6 | ⚠️ warn 1 |
 | [`cloth_by_faces`](#cloth_by_faces) 📄 | `cloth_drop_faces` ⧉ | 20s | high | 29/29 | ✅ |
-| [`double_spiral_domino`](#double_spiral_domino) | `domino_chain` | 18s | preview | 6/6 | ✅ |
-| [`funnel_vortex_marbles`](#funnel_vortex_marbles) | `funnel_vortex` | 18s | preview | 14/14 | ✅ |
-| [`glass_fracture_wall`](#glass_fracture_wall) | `glass_fracture_wall` | 10s | preview | 14/14 | ✅ |
-| [`growing_ball_bounce`](#growing_ball_bounce) | `growing_ball` | 20s | preview | 14/14 | ✅ |
+| [`double_spiral_domino`](#double_spiral_domino) 📄 | `domino_chain` | 18s | preview | 6/6 | ✅ |
+| [`funnel_vortex_marbles`](#funnel_vortex_marbles) 📄 | `funnel_vortex` | 18s | preview | 14/14 | ✅ |
+| [`glass_fracture_wall`](#glass_fracture_wall) 📄 | `glass_fracture_wall` | 10s | preview | 14/14 | ✅ |
+| [`growing_ball_bounce`](#growing_ball_bounce) 📄 | `growing_ball` | 20s | preview | 14/14 | ✅ |
 | [`local_colorful_domino`](#local_colorful_domino) | `domino_chain` | 6s | preview | 6/6 | ✅ |
 | [`local_local_domino`](#local_local_domino) | `domino_chain` | 6s | preview | 6/6 | ✅ |
 | [`magnetic_pendulum_ufo`](#magnetic_pendulum_ufo) 📄 | `magnetic_pendulum` | 15s | preview | 8/8 | ✅ |
-| [`marble_elimination_race`](#marble_elimination_race) | `marble_race` | 18s | preview | 14/14 | ✅ |
+| [`marble_elimination_race`](#marble_elimination_race) 📄 | `marble_race` | 18s | preview | 14/14 | ✅ |
 | [`paper_to_cloth`](#paper_to_cloth) 📄 | `paper_to_cloth` ⧉ | 24s | preview | 10/10 | ✅ |
-| [`press_crush_showdown`](#press_crush_showdown) | `press_crush` | 15s | preview | 13/13 | ✅ |
-| [`pyramid_collapse_100`](#pyramid_collapse_100) | `pyramid_collapse` | 15s | preview | 14/14 | ✅ |
+| [`press_crush_showdown`](#press_crush_showdown) 📄 | `press_crush` | 15s | preview | 13/13 | ✅ |
+| [`pyramid_collapse_100`](#pyramid_collapse_100) 📄 | `pyramid_collapse` | 15s | preview | 14/14 | ✅ |
 | [`quick_domino_chain`](#quick_domino_chain) | `domino_chain` | 6s | preview | 6/6 | ✅ |
 | [`ring_escape_5rings`](#ring_escape_5rings) 📄 | `ring_escape` | 12s | preview | 8/8 | ✅ |
-| [`ring_escape_tall`](#ring_escape_tall) | `ring_escape` | 14s | preview | 13/13 | ✅ |
+| [`ring_escape_tall`](#ring_escape_tall) 📄 | `ring_escape` | 14s | preview | 13/13 | ✅ |
 | [`sample_001_double_pendulum`](#sample_001_double_pendulum) | `double_pendulum` | 30s | high | 7/7 | ✅ |
 | [`sample_004_lorenz_attractor`](#sample_004_lorenz_attractor) | `lorenz_attractor` | 30s | high | 7/7 | ✅ |
 | [`sample_005_domino_chain`](#sample_005_domino_chain) | `domino_chain` | 20s | high | 6/6 | ✅ |
-| [`sand_avalanche_asmr`](#sand_avalanche_asmr) | `sand_collapse` | 15s | preview | 5/5 | ✅ |
-| [`soft_body_torus_compare`](#soft_body_torus_compare) | `soft_body_torus_compare` | 12s | preview | 18/18 | ✅ |
+| [`sand_avalanche_asmr`](#sand_avalanche_asmr) 📄 | `sand_collapse` | 15s | preview | 5/5 | ✅ |
+| [`soft_body_torus_compare`](#soft_body_torus_compare) 📄 | `soft_body_torus_compare` | 12s | preview | 18/18 | ✅ |
 
 <sub>📄 = `docs/gate1/` にコンタクトシートあり ／ ⧉ = 段階シーン（`render_staged`）</sub>
 
@@ -84,6 +84,8 @@ Phase 1 コンタクトシート: [`docs/gate1/cloth_by_faces_contact.png`](../g
 
 指摘なし。
 
+Phase 1 コンタクトシート: [`docs/gate1/double_spiral_domino_contact.png`](../gate1/double_spiral_domino_contact.png)
+
 ### funnel_vortex_marbles
 
 160 Marbles Down the Vortex
@@ -91,6 +93,8 @@ Phase 1 コンタクトシート: [`docs/gate1/cloth_by_faces_contact.png`](../g
 > フレーム1から玉が落ち始め、最初の1周が0.5秒以内に見える
 
 指摘なし。
+
+Phase 1 コンタクトシート: [`docs/gate1/funnel_vortex_marbles_contact.png`](../gate1/funnel_vortex_marbles_contact.png)
 
 ### glass_fracture_wall
 
@@ -100,6 +104,8 @@ Glass Wall Shatter — Sphere Impact
 
 指摘なし。
 
+Phase 1 コンタクトシート: [`docs/gate1/glass_fracture_wall_contact.png`](../gate1/glass_fracture_wall_contact.png)
+
 ### growing_ball_bounce
 
 The Ball Grows Every Bounce
@@ -107,6 +113,8 @@ The Ball Grows Every Bounce
 > フレーム1から跳ね始める。2バウンド目には既に目に見えて大きくなっている
 
 指摘なし。
+
+Phase 1 コンタクトシート: [`docs/gate1/growing_ball_bounce_contact.png`](../gate1/growing_ball_bounce_contact.png)
 
 ### local_colorful_domino
 
@@ -142,6 +150,8 @@ Phase 1 コンタクトシート: [`docs/gate1/magnetic_pendulum_ufo_contact.png
 
 指摘なし。
 
+Phase 1 コンタクトシート: [`docs/gate1/marble_elimination_race_contact.png`](../gate1/marble_elimination_race_contact.png)
+
 ### paper_to_cloth
 
 紙が布になるまで — 面数デモ
@@ -160,6 +170,8 @@ Hydraulic Press vs 48 Blocks
 
 指摘なし。
 
+Phase 1 コンタクトシート: [`docs/gate1/press_crush_showdown_contact.png`](../gate1/press_crush_showdown_contact.png)
+
 ### pyramid_collapse_100
 
 285-Block Pyramid vs One Wrecking Ball
@@ -167,6 +179,8 @@ Hydraulic Press vs 48 Blocks
 > フレーム14で鉄球が最下層に到達。そこから全体が自重で落ちる
 
 指摘なし。
+
+Phase 1 コンタクトシート: [`docs/gate1/pyramid_collapse_100_contact.png`](../gate1/pyramid_collapse_100_contact.png)
 
 ### quick_domino_chain
 
@@ -193,6 +207,8 @@ Can the Ball Escape All 7 Rings?
 > フレーム1でボールが最上段に落ちる。1枚目を抜けられるかが即座に分かる
 
 指摘なし。
+
+Phase 1 コンタクトシート: [`docs/gate1/ring_escape_tall_contact.png`](../gate1/ring_escape_tall_contact.png)
 
 ### sample_001_double_pendulum
 
@@ -226,6 +242,8 @@ Sand Wall Collapse — 3000 Grains
 
 指摘なし。
 
+Phase 1 コンタクトシート: [`docs/gate1/sand_avalanche_asmr_contact.png`](../gate1/sand_avalanche_asmr_contact.png)
+
 ### soft_body_torus_compare
 
 0% vs 100% Soft Body — Torus Edition
@@ -233,6 +251,8 @@ Sand Wall Collapse — 3000 Grains
 > 落下は1フレーム目から。着地の瞬間に左右で結果が割れる
 
 指摘なし。
+
+Phase 1 コンタクトシート: [`docs/gate1/soft_body_torus_compare_contact.png`](../gate1/soft_body_torus_compare_contact.png)
 
 ## シーン契約マトリクス
 
