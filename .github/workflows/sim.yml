@@ -1,5 +1,10 @@
 name: sim
 
+# Surfaces the concept in the Actions run list — without this every run is
+# titled just "sim" and the only way to tell which concept a run was for is
+# to open it and read the inputs.
+run-name: "sim: ${{ inputs.concept }} (${{ inputs.preset }}/${{ inputs.engine }})"
+
 # Stage 1 of the pipeline: run the Blender simulation and render footage.
 # Concept authoring stays local — this workflow takes an already-committed
 # concept YAML and produces outputs/renders/<slug>.mp4 as a downloadable
@@ -115,7 +120,10 @@ permissions:
 
 jobs:
   render:
-    name: sim (${{ inputs.preset }} / ${{ inputs.engine }})
+    # Job names show up in the check-runs list (e.g. on a PR) where every sim
+    # dispatch otherwise renders as the identical "sim (preview / CYCLES)" —
+    # the concept path is what actually distinguishes one run from another.
+    name: "sim (${{ inputs.preset }} / ${{ inputs.engine }}) — ${{ inputs.concept }}"
     runs-on: ${{ inputs.runner }}
     # preview on a 4-core hosted runner: minutes to ~1h. Anything heavier gets
     # a near-maximum budget; 330 stays under the 360-minute platform cap so the
