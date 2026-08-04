@@ -45,16 +45,19 @@ _ENV_HINT = (
 
 
 def token_path() -> Path:
+    """Where the local OAuth token cache lives (local dev path only)."""
     return Path(os.environ.get("YOUTUBE_TOKEN_PATH", DEFAULT_TOKEN_PATH))
 
 
 def client_secret_path() -> Path:
+    """Where the OAuth client-secret JSON lives (local dev path only)."""
     return Path(os.environ.get("YOUTUBE_CLIENT_SECRET_PATH", DEFAULT_CLIENT_SECRET_PATH))
 
 
 def _headless() -> bool:
     """True on CI, where opening a consent browser is impossible."""
-    return bool(os.environ.get("GITHUB_ACTIONS") or os.environ.get("CI"))
+    from pipeline.config import env_flag
+    return env_flag("GITHUB_ACTIONS") or env_flag("CI")
 
 
 def _creds_from_env() -> Credentials | None:
@@ -76,6 +79,7 @@ def _creds_from_env() -> Credentials | None:
 
 
 def _refresh(creds: Credentials) -> Credentials:
+    """Mint an access token, translating RefreshError into actionable guidance."""
     try:
         creds.refresh(Request())
     except RefreshError as exc:
@@ -211,7 +215,10 @@ def upload_video(video_path: Path, concept: dict, privacy: str = "private",
     return {
         "video_id": video_id,
         "url": url,
-        "privacy": privacy,
+        # What YouTube actually applied, not what we asked for: an unaudited API
+        # project has its uploads forced to private regardless of the request.
+        "privacy": response.get("status", {}).get("privacyStatus", privacy),
+        "requested_privacy": privacy,
         "title": body["snippet"]["title"],
         "tags": body["snippet"]["tags"],
         "thumbnail_set": thumbnail_set,

@@ -33,6 +33,16 @@ def load_settings(path: Path | None = None) -> dict:
     return _interpolate(data)
 
 
+def env_flag(name: str) -> bool:
+    """Read a boolean environment flag.
+
+    Only explicit truthy spellings count, so `CI=false` (a real convention —
+    some toolchains set it to suppress warning-as-error behaviour) reads as off
+    rather than as "some value is present, therefore true".
+    """
+    return os.environ.get(name, "").lower() in ("1", "true", "yes")
+
+
 def stub_mode() -> bool:
     """Force all external tools (Blender/HyperFrames/VOICEVOX) into ffmpeg stubs."""
-    return os.environ.get("CHAOSIM_STUB", "").lower() in ("1", "true", "yes")
+    return env_flag("CHAOSIM_STUB")

@@ -137,8 +137,9 @@ jobs:
           test -f "$CONCEPT" || {
             echo "::error::concept '$CONCEPT' not found in this checkout"; exit 1; }
 
+      # Runs on dry runs too: --dry-run exists to prove the credentials work, so
+      # a missing secret should surface here rather than as a Python error later.
       - name: Check credentials
-        if: ${{ !inputs.dry_run }}
         env:
           YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
           YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
@@ -190,7 +191,15 @@ jobs:
             # `find | sort | head` would trip pipefail on SIGPIPE, and a missing
             # outputs/ would trip `set -e`. Collect, then take the first.
             mapfile -t found < <(find outputs -name '*.mp4' -type f 2>/dev/null | sort)
-            if [ "${#found[@]}" -gt 0 ]; then video="${found[0]}"; fi
+            # Exactly one, or none. Picking the first of several would silently
+            # publish whichever file happened to sort first.
+            if [ "${#found[@]}" -eq 1 ]; then
+              video="${found[0]}"
+            elif [ "${#found[@]}" -gt 1 ]; then
+              echo "::error::artifact '$ARTIFACT' has no ${SLUG} mp4 at an expected path and carries ${#found[@]} candidates — cannot choose"
+              printf '  %s\n' "${found[@]}"
+              exit 1
+            fi
           fi
           if [ -z "$video" ]; then
             echo "::error::no mp4 found in artifact '$ARTIFACT'"
@@ -224,16 +233,17 @@ jobs:
           w=$(probe width)
           h=$(probe height)
           duration=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$VIDEO")
-          secs=${duration%%.*}
           # An unreadable duration must fail closed, not sail past the limit check.
-          case "$secs" in
-            ''|*[!0-9]*) echo "::error::could not read duration of $VIDEO"; exit 1 ;;
+          case "$duration" in
+            ''|*[!0-9.]*|.|*.*.*) echo "::error::could not read duration of $VIDEO"; exit 1 ;;
           esac
-          echo "codec=$codec ${w}x${h} ${secs}s ${bytes}B"
+          secs=${duration%%.*}          # display only — the limit check uses the decimal
+          echo "codec=$codec ${w}x${h} ${duration}s ${bytes}B"
           [ "$codec" = "h264" ] || { echo "::error::unexpected codec $codec"; exit 1; }
           # config/settings.yaml video.max_duration_sec is 59; YouTube cuts Shorts at 60.
-          [ "$secs" -le 60 ] || {
-            echo "::error::${secs}s exceeds the 60s Shorts limit"; exit 1; }
+          # Compare the decimal: truncating first would let 60.9 through as 60.
+          awk -v d="$duration" 'BEGIN { exit (d > 60) }' || {
+            echo "::error::${duration}s exceeds the 60s Shorts limit"; exit 1; }
           [ "$w" -lt "$h" ] || {
             echo "::error::${w}x${h} is not vertical — Shorts requires portrait"; exit 1; }
           echo "resolution=${w}x${h}" >> "$GITHUB_OUTPUT"
@@ -254,8 +264,12 @@ jobs:
           DRY_RUN: ${{ inputs.dry_run }}
         run: |
           set -euo pipefail
+          # --record-slug pins the receipt filename to the slug validated above.
+          # Without it the CLI would name the receipt from the concept YAML, and a
+          # dispatch pairing a mismatched concept+slug would upload the video and
+          # only then fail to find outputs/uploads/<slug>.json.
           args=(upload "$VIDEO" --concept "$CONCEPT" --privacy "$PRIVACY"
-                --record-dir outputs/uploads
+                --record-dir outputs/uploads --record-slug "$SLUG"
                 --run-url "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}")
           if [ -n "${THUMBNAIL:-}" ]; then args+=(--thumbnail "$THUMBNAIL"); fi
           if [ "$DRY_RUN" = "true" ]; then args+=(--dry-run); fi
@@ -275,6 +289,7 @@ jobs:
           CONCEPT: ${{ inputs.concept }}
           PRIVACY: ${{ inputs.privacy }}
           ARTIFACT: ${{ inputs.artifact || format('sim-{0}', inputs.slug) }}
+          DRY_RUN: ${{ inputs.dry_run }}
         run: |
           set -euo pipefail
           {
@@ -291,8 +306,13 @@ jobs:
             echo "| dry run | \`${{ inputs.dry_run }}\` |"
             echo "| url | ${{ steps.upload.outputs.video_url || 'n/a' }} |"
             echo ""
-            echo "Uploaded as **${PRIVACY}**. Review it in YouTube Studio and publish"
-            echo "manually once it clears the Gate 4 checklist in docs/production-plan.md."
+            if [ "$DRY_RUN" = "true" ]; then
+              echo "**Dry run — nothing was uploaded.** Credentials and the video"
+              echo "passed preflight; re-run with \`dry_run: false\` to publish."
+            else
+              echo "Uploaded as **${PRIVACY}**. Review it in YouTube Studio and publish"
+              echo "manually once it clears the Gate 4 checklist in docs/production-plan.md."
+            fi
           } >> "$GITHUB_STEP_SUMMARY"
 
       # The receipt is the one thing here that cannot be regenerated: which

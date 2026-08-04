@@ -170,10 +170,13 @@ def run(concept_file: str, upload: bool, preset: str | None, stages: str,
 @click.option("--run-url", default=None, help="CI run URL, appended to the video description")
 @click.option("--record-dir", default=None,
               help="Write an upload receipt JSON here (default: settings output.uploads_dir)")
+@click.option("--record-slug", default=None,
+              help="Name the receipt file explicitly (default: the concept's slug)")
 @click.option("--dry-run", is_flag=True,
               help="Authenticate and build the request body, but do not upload")
 def upload(video_file: str, concept: str | None, thumbnail_file: str | None, privacy: str,
-           run_url: str | None, record_dir: str | None, dry_run: bool):
+           run_url: str | None, record_dir: str | None, record_slug: str | None,
+           dry_run: bool):
     """Upload a video to YouTube (privacyStatus=private is YouTube's closest thing to a draft)."""
     from pipeline.config import load_settings
     from pipeline.planner import load_concept, normalize_concept
@@ -184,7 +187,9 @@ def upload(video_file: str, concept: str | None, thumbnail_file: str | None, pri
     # normalize_concept matches what `run --upload` feeds the uploader.
     concept_data = (normalize_concept(load_concept(Path(concept))) if concept
                     else {"caption": video_path.stem})
-    slug = concept_data.get("slug") or video_path.stem
+    # The caller may pin the receipt name so it cannot drift from the identity
+    # the caller already validated (upload.yml reads back outputs/uploads/<slug>.json).
+    slug = record_slug or concept_data.get("slug") or video_path.stem
     extra = f"Built by GitHub Actions: {run_url}" if run_url else ""
 
     console.print(Panel(f"Uploading: [bold]{video_path.name}[/bold]", style="magenta"))

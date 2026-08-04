@@ -8,13 +8,14 @@ from unittest import mock
 from pipeline.uploader import (
     SCOPES,
     _creds_from_env,
+    _headless,
     build_video_body,
     get_authenticated_service,
     write_upload_record,
 )
 
 ENV_KEYS = ("YOUTUBE_CLIENT_ID", "YOUTUBE_CLIENT_SECRET", "YOUTUBE_REFRESH_TOKEN",
-            "YOUTUBE_TOKEN_PATH", "CI", "GITHUB_ACTIONS")
+            "YOUTUBE_TOKEN_PATH", "YOUTUBE_CLIENT_SECRET_PATH", "CI", "GITHUB_ACTIONS")
 
 FULL_ENV = {
     "YOUTUBE_CLIENT_ID": "cid.apps.googleusercontent.com",
@@ -107,6 +108,39 @@ class CredsFromEnvTests(unittest.TestCase):
             self.assertIsNone(_creds_from_env())
 
 
+class HeadlessDetectionTests(unittest.TestCase):
+    """`CI=false` is a real convention; it must not be read as "CI is set, so true"."""
+
+    def test_truthy_spellings_are_headless(self):
+        for var in ("CI", "GITHUB_ACTIONS"):
+            for value in ("1", "true", "TRUE", "yes"):
+                with self.subTest(var=var, value=value), clean_env(**{var: value}):
+                    self.assertTrue(_headless())
+
+    def test_falsy_spellings_are_not_headless(self):
+        for value in ("false", "0", "no", ""):
+            with self.subTest(value=value), clean_env(CI=value):
+                self.assertFalse(_headless())
+
+    def test_unset_is_not_headless(self):
+        with clean_env():
+            self.assertFalse(_headless())
+
+    def test_ci_false_still_reaches_the_browser_flow(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            secret = Path(tmp) / "client_secret.json"
+            secret.write_text("{}", encoding="utf-8")
+            env = {"CI": "false", "YOUTUBE_TOKEN_PATH": str(Path(tmp) / "token.pickle"),
+                   "YOUTUBE_CLIENT_SECRET_PATH": str(secret)}
+            with clean_env(**env), \
+                 mock.patch("pipeline.uploader.build"), \
+                 mock.patch("pipeline.uploader.pickle"), \
+                 mock.patch("pipeline.uploader.InstalledAppFlow") as flow:
+                get_authenticated_service()
+
+        flow.from_client_secrets_file.assert_called_once()
+
+
 class HeadlessGuardTests(unittest.TestCase):
     def test_ci_without_secrets_fails_before_opening_a_browser(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -152,6 +186,13 @@ class UploadRecordTests(unittest.TestCase):
         self.assertEqual(payload["video_id"], "abc123")
         self.assertEqual(payload["run_url"], "https://github.com/o/r/actions/runs/1")
         self.assertIn("uploaded_at", payload)
+
+    def test_explicit_slug_names_the_file(self):
+        # upload.yml pins this so it reads back the receipt it just named.
+        with tempfile.TemporaryDirectory() as tmp:
+            path = write_upload_record(Path(tmp), "pinned_slug", {"video_id": "x"})
+
+        self.assertEqual(path.name, "pinned_slug.json")
 
     def test_drops_none_extras(self):
         with tempfile.TemporaryDirectory() as tmp:
