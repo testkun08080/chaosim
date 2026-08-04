@@ -386,6 +386,15 @@ python scripts/chaosim.py upload outputs/final/<slug>_final.mp4 \
     --concept concepts/generated/<slug>.yaml --privacy private
 ```
 
+**GitHub Actions からの自動投稿**
+
+`sim` ワークフローは成功すると既定で `upload` ジョブに連鎖し、レンダー結果を
+**非公開（private）で自動投稿**する。YouTube API に draft 状態は無いので private が下書き相当。
+`sim` の入力 `upload` を `false` にすればスキップできる。セットアップと quota は `docs/ci.md` を参照。
+
+**公開への昇格は自動化しない。** 下のゲート4は人が YouTube Studio で通す。
+`upload.yml` は入力として `public` を受け付けないので、CI から公開されることはない。
+
 **ゲート 4（公開前チェック）**
 
 - [ ] `outputs/final/<slug>_final.mp4` が 9:16・59秒以内・音声ありで再生できる
@@ -434,5 +443,7 @@ python scripts/chaosim.py upload outputs/final/<slug>_final.mp4 \
 4. **ラウドネス正規化** — 最終エンコードで YouTube 基準（-14 LUFS）に loudnorm を適用。
 5. **バリエーション一括生成** — 1つの基準 YAML から `params` を振った複数 YAML を吐く
    `variants` サブコマンド。
-6. **YouTube アップロードの検証** — OAuth2 認証（`youtube_client_secret.json` 設置＋初回認証）を通し、
-   `upload` を実データで一度通す（現状このリンクのみ未検証）。
+6. **YouTube アップロードの検証** — GHA からの private 自動投稿までは実装済み（`docs/ci.md`）。
+   残るは実データでの一度きりの疎通確認：Google Cloud のセットアップ →
+   `chaosim youtube-auth` でトークン発行 → `youtube` Environment に登録 →
+   `upload` を `dry_run: true` で通し、次に本番で1本上げる。

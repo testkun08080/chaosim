@@ -212,10 +212,14 @@ def run_full_pipeline(concept_path: Path, upload: bool = False,
 
     # 6. Upload.
     if upload:
-        from pipeline.uploader import upload_video  # lazy: avoids google deps unless uploading
+        # lazy: avoids google deps unless uploading
+        from pipeline.uploader import upload_video, write_upload_record
         print("\n=== [6/6] Uploading to YouTube ===")
-        url = upload_video(final_video, concept, privacy, thumbnail_path=thumb)
-        print(f"Live at: {url}")
+        result = upload_video(final_video, concept, privacy, thumbnail_path=thumb)
+        record = write_upload_record(
+            Path(settings.get("output", {}).get("uploads_dir", "outputs/uploads")),
+            slug, result, source_video=str(final_video), concept_path=str(concept_path))
+        print(f"Live at: {result['url']}  (record: {record})")
 
     return final_video
 

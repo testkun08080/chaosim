@@ -42,6 +42,16 @@ on:
         type: string
         required: false
         default: '4.5.3'
+      upload:
+        description: Upload the render to YouTube as a private draft when it succeeds.
+        type: boolean
+        required: false
+        default: true
+      upload_privacy:
+        description: Visibility of the uploaded draft (private | unlisted).
+        type: string
+        required: false
+        default: private
     outputs:
       artifact-name:
         description: Name of the uploaded simulation artifact.
@@ -96,6 +106,17 @@ on:
         type: string
         required: false
         default: '4.5.3'
+      upload:
+        description: Upload the render to YouTube as a private draft when it succeeds.
+        type: boolean
+        required: false
+        default: true
+      upload_privacy:
+        description: Visibility of the uploaded draft.
+        type: choice
+        required: false
+        default: private
+        options: [private, unlisted]
 
 # Serialise per concept+ref, but never cancel an in-flight render: at hosted
 # runner speeds a cancelled Cycles job has already burnt real minutes.
@@ -381,3 +402,23 @@ jobs:
             outputs/renders/*.json
           if-no-files-found: ignore
           retention-days: 3
+
+  # Chain straight into the YouTube draft upload. `render` only reports success
+  # after the 4-layer anti-stub verification above, so reaching this job is
+  # itself the guarantee that the mp4 is real Blender output.
+  upload:
+    needs: render
+    # A boolean input arrives as a real bool via workflow_dispatch but can be a
+    # string through workflow_call, so test against both spellings. The explicit
+    # render-result check replaces the implicit success() that a custom `if`
+    # would otherwise supply — spelled out because a broken render must never
+    # reach the channel.
+    if: ${{ needs.render.result == 'success' && inputs.upload != false && inputs.upload != 'false' }}
+    uses: ./.github/workflows/upload.yml
+    with:
+      concept: ${{ inputs.concept }}
+      slug: ${{ needs.render.outputs.slug }}
+      artifact: ${{ needs.render.outputs.artifact-name }}
+      run_id: ${{ github.run_id }}
+      privacy: ${{ inputs.upload_privacy }}
+    secrets: inherit

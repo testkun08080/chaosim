@@ -3,15 +3,19 @@
 企画（`plan`）はローカルのまま、それ以降の工程を GitHub Actions 上で回すための構成。
 成果物は各 run の Artifacts からダウンロードできる。
 
-現在実装済みなのは **`ci`（配線チェック）** と **`sim`（シミュレーション）** の2本。
+現在実装済みなのは **`ci`（配線チェック）**・**`sim`（シミュレーション）**・
+**`upload`（YouTube 非公開投稿）** の3本。
 material / narration / composite / thumbnail と、それらを束ねる orchestrator は今後追加する。
+そのため **現時点で `upload` が投稿するのは Blender の生素材**（字幕・ナレーション・効果音なし）で、
+compose 工程が CI 化されたら `upload` の入力アーティファクトを差し替えるだけで済む設計にしてある。
 
 ## ワークフロー一覧
 
 | ワークフロー | トリガ | 用途 | 所要 |
 |---|---|---|---|
 | `ci.yml` | push(main) / PR / 手動 | スタブモードで全工程を通し、配線と共通セットアップを検証 | 約2〜5分 |
-| `sim.yml` | 手動 / `workflow_call` | Blender シミュレーション＋レンダー | preview 6秒尺で約10〜20分 |
+| `sim.yml` | 手動 / `workflow_call` | Blender シミュレーション＋レンダー。成功すると既定で `upload` へ連鎖 | preview 6秒尺で約10〜20分 |
+| `upload.yml` | 手動 / `workflow_call`（`sim` から） | アーティファクトの mp4 を YouTube へ **非公開** で投稿 | 約1〜3分 |
 | `gate-review.yml` | 手動 / `docs/gate1/slugs.txt` への push | 既存 sim 実行の `sim-<slug>` を再取得し、コンタクトシートを `docs/gate1/` に集めてコミット | 約30秒 |
 | `catalog.yml` | `concepts/` `scenes/` への push / PR / 手動 | 企画とシーンを突き合わせて `docs/catalog/` を再生成。error があれば失敗 | 約1分 |
 
@@ -31,6 +35,7 @@ material / narration / composite / thumbnail と、それらを束ねる orchest
 |---|---|---|---|
 | 企画カタログ（JSON/CSV） | `outputs/catalog/catalog.json` / `concepts.csv` | `catalog-report`（14日） | しない |
 | Phase 1 判定データ（JSON/CSV） | `outputs/gate1/gate1.json` / `gate1.csv` | `gate1-report`（30日） | しない |
+| 投稿レシート（JSON） | `outputs/uploads/<slug>.json` | `upload-<slug>`（30日） | しない |
 | **合否の記録** | `docs/gate1/verdicts.yaml` | 同左 | **する（人が手で書く）** |
 | 企画カタログ（Markdown） | `docs/catalog/README.md` | 同左 | する |
 
@@ -61,11 +66,69 @@ python scripts/chaosim.py gate1-report --check   # 未判定が残っていれ�
      `docs/production-plan.md` の Gate 1→2（画づくりの合否）をここで判断する
    - `<slug>_events.json` — SFX 用の衝突イベント
    - `<slug>_render.log` — 実行ログ
-4. 複数企画をまとめて見比べるときは **`gate-review`** を回す。
+4. 同じ run の **`upload`** ジョブが、その mp4 を YouTube へ**非公開**で投稿する
+   （`sim` の入力 `upload` を `false` にすればスキップされる）。
+   ジョブサマリに動画 URL が出るので、YouTube Studio で中身を確認する。
+   公開への昇格は自動化しない —— `docs/production-plan.md` の Gate 4 を人が通す。
+5. 複数企画をまとめて見比べるときは **`gate-review`** を回す。
    実行済みの sim から `sim-<slug>` を再取得して `docs/gate1/` にコミットするので、
    zip を1本ずつ落とさずリポジトリ上でコンタクトシートを並べて判定できる
    （レンダーはやり直さない）。対象は `docs/gate1/slugs.txt` で指定する。
    mp4 はコミットしないので、動きを見るときは Artifacts から取る。
+
+## YouTube 投稿（`upload`）
+
+### YouTube に「下書き」状態は無い
+
+YouTube Data API に draft という状態は存在しない。`status.privacyStatus: "private"` が
+その代わりになる。さらに **Google の監査を通していない API プロジェクトからの `videos.insert`
+は強制的に private にロックされる**（2020-07-28 以降に作成したプロジェクト）ので、
+下書き用途なら監査申請は不要。`upload.yml` は `public` を入力として受け付けない。
+
+### セットアップ（初回のみ）
+
+1. Google Cloud Console で **YouTube Data API v3** を有効化する。
+2. OAuth クライアント（種別 **Desktop app**）を作成し、JSON を
+   `config/youtube_client_secret.json` に置く（`.gitignore` 済み）。
+3. **OAuth 同意画面を "In Production" に publish する。**
+   "Testing" のままだと**リフレッシュトークンが7日で失効**し、CI が週明けに必ず落ちる。
+   審査を通していないアプリなので同意画面に警告が出るが、自分のアカウントなら続行できる。
+4. 手元でトークンを発行する（ブラウザが開く）。
+   ```bash
+   python scripts/chaosim.py youtube-auth
+   ```
+5. 出力された3つの値を GitHub の **Settings → Environments → `youtube`** に
+   シークレットとして登録する。
+   - `YOUTUBE_CLIENT_ID`
+   - `YOUTUBE_CLIENT_SECRET`
+   - `YOUTUBE_REFRESH_TOKEN`
+
+   この Environment に required reviewer を足せば、投稿を人間の承認待ちにできる。
+6. 疎通確認は `dry_run: true` で。認証・アーティファクト展開・ffprobe 検査までを
+   quota を消費せずに通せる。
+
+### 認証の優先順位
+
+`pipeline/uploader.py` は **環境変数のリフレッシュトークン → `config/youtube_token.pickle`
+→ ブラウザ同意** の順に試す。CI では 1 番目しか成立しない。
+`CI` / `GITHUB_ACTIONS` が立っている状態で 3 番目に落ちたときは、`run_local_server()` を
+呼ぶ前に明示的なエラーで止める（ランナー上でブラウザ待ちにハングさせないため）。
+
+### quota
+
+`videos.insert` は 1600 units、`thumbnails.set` は 50 units。既定の日次上限は 10,000 units
+なので、**1日あたり約6本が上限**。`preset: preview` の確認レンダーまで毎回自動投稿すると
+すぐ枯れるので、検証を繰り返すときは `sim` の入力 `upload` を `false` にする。
+
+### 投稿されるメタデータ
+
+concept YAML 由来。`caption` → タイトル（100文字で切り詰め）、`description` → 説明
+（末尾に `#Shorts` と CI run の URL を付与）、`hashtags` → タグ（`Shorts` を追加）。
+`categoryId` は `config/settings.yaml` の `youtube.category_id`。
+登録者への通知は `notifySubscribers=False` で抑止している。
+
+投稿後、`outputs/uploads/<slug>.json` にレシート（video id・URL・公開設定・run URL）が
+残り、`upload-<slug>` アーティファクトとして30日保持される。
 
 ## プリセットとコストの制約
 
@@ -131,10 +194,15 @@ GitHub-hosted ランナーは CPU 4コアのみで、1ジョブ6時間の上限�
 | `narration-<slug>` | `outputs/audio/<slug>_narration.wav` |
 | `compose-<slug>` | `outputs/final/<slug>_final.mp4` |
 | `thumb-<slug>` | `outputs/final/<slug>_thumb.png` |
+| `upload-<slug>` | `outputs/uploads/<slug>.json`（投稿レシート） |
 
-単独 dispatch 時は入力 `upstream_run_id` を受け、`actions/download-artifact@v4` の
+単独 dispatch 時は入力 `run_id` を受け、`actions/download-artifact@v4` の
 `run-id` + `github-token` で run をまたいで取得する（`permissions: actions: read` が必要）。
-orchestrator 経由なら同一 run 内でそのまま解決される。
+orchestrator 経由なら同一 run 内でそのまま解決される。`upload.yml` がこの形の実装例。
+
+`upload.yml` は**アーティファクトの中身に依存しない**：`outputs/final/<slug>_final.mp4`
+→ `outputs/renders/<slug>.mp4` → 最初に見つかった `*.mp4` の順に探す。
+`compose-<slug>` が実装されたら `sim.yml` 側の `artifact:` を差し替えるだけで移行できる。
 
 ## 今後の工程で必要になる作業
 
@@ -152,3 +220,6 @@ orchestrator 経由なら同一 run 内でそのまま解決される。
   Proposal A/B が入るまで CI の完成動画は SFX 無しになる。
 - **フレーム単位の再開**: `runner.py` は起動時に `frames_dir` を毎回削除するため、
   `docs/media-pipeline-playbook.md` §3 の再開設計を CI に持ち込むにはこの削除の抑止が必要。
+- **upload の入力切り替え**: compose が CI 化されるまで、`upload` が投稿するのは生素材。
+  `compose-<slug>` ができたら `sim.yml` の `upload` ジョブに渡す `artifact:` を
+  そちらへ向ける（`upload.yml` 自体の変更は不要）。

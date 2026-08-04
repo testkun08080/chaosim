@@ -1,0 +1,307 @@
+name: upload
+
+# Final stage of the pipeline: publish an already-rendered video to YouTube as a
+# private "draft". YouTube has no draft state — privacyStatus=private is the
+# equivalent, and an unaudited API project has its uploads locked to private
+# anyway. Promoting to public stays a human decision in YouTube Studio
+# (Gate 4 in docs/production-plan.md).
+#
+# Deliberately artifact-agnostic: it takes an artifact name and finds the mp4
+# inside it, so the same job serves `sim-<slug>` today and `compose-<slug>`
+# once the compositing stage is CI-ready. See docs/ci.md for the contract.
+
+on:
+  workflow_call:
+    inputs:
+      concept:
+        description: Path to the concept YAML, relative to the repo root.
+        type: string
+        required: true
+      slug:
+        description: Concept slug — names the video file and the upload receipt.
+        type: string
+        required: true
+      artifact:
+        description: Artifact holding the video. Defaults to sim-<slug>.
+        type: string
+        required: false
+        default: ''
+      run_id:
+        description: Run the artifact belongs to. Defaults to the current run.
+        type: string
+        required: false
+        default: ''
+      privacy:
+        description: private | unlisted. `public` is intentionally not accepted here.
+        type: string
+        required: false
+        default: private
+      dry_run:
+        description: Verify credentials and the video, but do not upload.
+        type: boolean
+        required: false
+        default: false
+    outputs:
+      video-url:
+        description: URL of the uploaded video.
+        value: ${{ jobs.publish.outputs.video-url }}
+
+  # Duplicated on purpose: GitHub Actions does not support YAML anchors, so the
+  # two trigger blocks cannot share a definition. The duplication stops here —
+  # the `inputs` context is populated for workflow_dispatch and workflow_call
+  # alike, so the job body below never branches on the event type.
+  workflow_dispatch:
+    inputs:
+      concept:
+        description: Path to the concept YAML, relative to the repo root.
+        type: string
+        required: true
+      slug:
+        description: Concept slug — names the video file and the upload receipt.
+        type: string
+        required: true
+      artifact:
+        description: Artifact holding the video. Defaults to sim-<slug>.
+        type: string
+        required: false
+        default: ''
+      run_id:
+        description: Run the artifact belongs to. Defaults to the current run.
+        type: string
+        required: false
+        default: ''
+      privacy:
+        description: Upload visibility.
+        type: choice
+        required: false
+        default: private
+        options: [private, unlisted]
+      dry_run:
+        description: Verify credentials and the video, but do not upload.
+        type: boolean
+        required: false
+        default: false
+
+# Never upload the same slug twice concurrently — a duplicate videos.insert
+# costs 1600 quota units and leaves a stray video on the channel.
+concurrency:
+  group: upload-${{ github.workflow }}-${{ inputs.slug }}
+  cancel-in-progress: false
+
+defaults:
+  run:
+    shell: bash
+
+permissions:
+  contents: read
+  actions: read   # required to download an artifact from a different run
+
+jobs:
+  publish:
+    name: upload (${{ inputs.slug }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Holds YOUTUBE_CLIENT_ID / YOUTUBE_CLIENT_SECRET / YOUTUBE_REFRESH_TOKEN.
+    # Adding a required reviewer here converts this into a manual gate.
+    environment: youtube
+
+    outputs:
+      video-url: ${{ steps.upload.outputs.video_url }}
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate inputs
+        env:
+          PRIVACY: ${{ inputs.privacy }}
+          SLUG: ${{ inputs.slug }}
+          # Via env, never interpolated into the script body: these are
+          # caller-supplied strings and `${{ }}` substitutes before bash parses.
+          CONCEPT: ${{ inputs.concept }}
+        run: |
+          set -euo pipefail
+          # `public` is rejected on purpose: promoting a video is a human decision.
+          case "$PRIVACY" in
+            private|unlisted) ;;
+            *) echo "::error::privacy must be private or unlisted, got '$PRIVACY'"; exit 1 ;;
+          esac
+          # Same guard as sim.yml: the slug becomes a path, so keep it inert.
+          case "$SLUG" in
+            [A-Za-z0-9]*) ;;
+            *) echo "::error::slug '$SLUG' must start with an alphanumeric"; exit 1 ;;
+          esac
+          if [ "$SLUG" != "$(printf '%s' "$SLUG" | tr -cd 'A-Za-z0-9._-')" ]; then
+            echo "::error::slug '$SLUG' contains characters outside [A-Za-z0-9._-]"; exit 1
+          fi
+          test -f "$CONCEPT" || {
+            echo "::error::concept '$CONCEPT' not found in this checkout"; exit 1; }
+
+      - name: Check credentials
+        if: ${{ !inputs.dry_run }}
+        env:
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+        run: |
+          set -euo pipefail
+          missing=
+          for v in YOUTUBE_CLIENT_ID YOUTUBE_CLIENT_SECRET YOUTUBE_REFRESH_TOKEN; do
+            [ -n "${!v:-}" ] || missing="$missing $v"
+          done
+          if [ -n "$missing" ]; then
+            echo "::error::missing secret(s):$missing — mint them with 'python scripts/chaosim.py youtube-auth' and add them to the 'youtube' environment. See docs/ci.md."
+            exit 1
+          fi
+
+      # ffmpeg (for the ffprobe preflight) comes from the composite action's
+      # defaults; Blender, Node and CJK fonts are not needed here.
+      - name: Set up chaosim toolchain
+        uses: ./.github/actions/setup-chaosim
+        with:
+          blender: 'false'
+          node: 'false'
+          fonts: 'false'
+
+      # Artifact paths are repo-root-relative (docs/ci.md), so `path: .`
+      # reproduces the outputs/ tree pipeline/ expects with no code change.
+      - name: Download video artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: ${{ inputs.artifact || format('sim-{0}', inputs.slug) }}
+          path: .
+          run-id: ${{ inputs.run_id || github.run_id }}
+          github-token: ${{ github.token }}
+
+      - name: Resolve video and thumbnail
+        id: resolve
+        env:
+          SLUG: ${{ inputs.slug }}
+          ARTIFACT: ${{ inputs.artifact || format('sim-{0}', inputs.slug) }}
+        run: |
+          set -euo pipefail
+          # Prefer the composited output; fall back to raw sim footage, then to
+          # whatever single mp4 the artifact happens to carry.
+          video=
+          for candidate in "outputs/final/${SLUG}_final.mp4" "outputs/renders/${SLUG}.mp4"; do
+            if [ -f "$candidate" ]; then video="$candidate"; break; fi
+          done
+          if [ -z "$video" ]; then
+            # `find | sort | head` would trip pipefail on SIGPIPE, and a missing
+            # outputs/ would trip `set -e`. Collect, then take the first.
+            mapfile -t found < <(find outputs -name '*.mp4' -type f 2>/dev/null | sort)
+            if [ "${#found[@]}" -gt 0 ]; then video="${found[0]}"; fi
+          fi
+          if [ -z "$video" ]; then
+            echo "::error::no mp4 found in artifact '$ARTIFACT'"
+            find outputs -type f | head -n 50
+            exit 1
+          fi
+          echo "video=$video" >> "$GITHUB_OUTPUT"
+          echo "resolved video: $video"
+
+          thumb="outputs/final/${SLUG}_thumb.png"
+          if [ -f "$thumb" ]; then
+            echo "thumbnail=$thumb" >> "$GITHUB_OUTPUT"
+            echo "resolved thumbnail: $thumb"
+          else
+            echo "no thumbnail in artifact — uploading without one"
+          fi
+
+      - name: Preflight
+        id: preflight
+        env:
+          VIDEO: ${{ steps.resolve.outputs.video }}
+        run: |
+          set -euo pipefail
+          # Last line of defence before the video reaches a real channel. Same
+          # ffprobe checks as sim.yml, plus the Shorts constraints.
+          bytes=$(stat -c%s "$VIDEO")
+          [ "$bytes" -gt 20000 ] || { echo "::error::$VIDEO is only ${bytes}B"; exit 1; }
+          probe() { ffprobe -v error -select_streams v:0 \
+            -show_entries "stream=$1" -of csv=p=0 "$VIDEO"; }
+          codec=$(probe codec_name)
+          w=$(probe width)
+          h=$(probe height)
+          duration=$(ffprobe -v error -show_entries format=duration -of csv=p=0 "$VIDEO")
+          secs=${duration%%.*}
+          # An unreadable duration must fail closed, not sail past the limit check.
+          case "$secs" in
+            ''|*[!0-9]*) echo "::error::could not read duration of $VIDEO"; exit 1 ;;
+          esac
+          echo "codec=$codec ${w}x${h} ${secs}s ${bytes}B"
+          [ "$codec" = "h264" ] || { echo "::error::unexpected codec $codec"; exit 1; }
+          # config/settings.yaml video.max_duration_sec is 59; YouTube cuts Shorts at 60.
+          [ "$secs" -le 60 ] || {
+            echo "::error::${secs}s exceeds the 60s Shorts limit"; exit 1; }
+          [ "$w" -lt "$h" ] || {
+            echo "::error::${w}x${h} is not vertical — Shorts requires portrait"; exit 1; }
+          echo "resolution=${w}x${h}" >> "$GITHUB_OUTPUT"
+          echo "duration=$secs" >> "$GITHUB_OUTPUT"
+          echo "bytes=$bytes" >> "$GITHUB_OUTPUT"
+
+      - name: Upload to YouTube
+        id: upload
+        env:
+          YOUTUBE_CLIENT_ID: ${{ secrets.YOUTUBE_CLIENT_ID }}
+          YOUTUBE_CLIENT_SECRET: ${{ secrets.YOUTUBE_CLIENT_SECRET }}
+          YOUTUBE_REFRESH_TOKEN: ${{ secrets.YOUTUBE_REFRESH_TOKEN }}
+          CONCEPT: ${{ inputs.concept }}
+          SLUG: ${{ inputs.slug }}
+          VIDEO: ${{ steps.resolve.outputs.video }}
+          THUMBNAIL: ${{ steps.resolve.outputs.thumbnail }}
+          PRIVACY: ${{ inputs.privacy }}
+          DRY_RUN: ${{ inputs.dry_run }}
+        run: |
+          set -euo pipefail
+          args=(upload "$VIDEO" --concept "$CONCEPT" --privacy "$PRIVACY"
+                --record-dir outputs/uploads
+                --run-url "${GITHUB_SERVER_URL}/${GITHUB_REPOSITORY}/actions/runs/${GITHUB_RUN_ID}")
+          if [ -n "${THUMBNAIL:-}" ]; then args+=(--thumbnail "$THUMBNAIL"); fi
+          if [ "$DRY_RUN" = "true" ]; then args+=(--dry-run); fi
+
+          python scripts/chaosim.py "${args[@]}"
+
+          if [ "$DRY_RUN" != "true" ]; then
+            url=$(python -c 'import json,sys; print(json.load(open(sys.argv[1]))["url"])' \
+                    "outputs/uploads/${SLUG}.json")
+            echo "video_url=$url" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Job summary
+        if: always()
+        env:
+          SLUG: ${{ inputs.slug }}
+          CONCEPT: ${{ inputs.concept }}
+          PRIVACY: ${{ inputs.privacy }}
+          ARTIFACT: ${{ inputs.artifact || format('sim-{0}', inputs.slug) }}
+        run: |
+          set -euo pipefail
+          {
+            echo "## upload — \`${SLUG}\`"
+            echo ""
+            echo "| | |"
+            echo "|---|---|"
+            echo "| concept | \`${CONCEPT}\` |"
+            echo "| artifact | \`${ARTIFACT}\` |"
+            echo "| video | \`${{ steps.resolve.outputs.video || 'n/a' }}\` |"
+            echo "| resolution | ${{ steps.preflight.outputs.resolution || 'n/a' }} |"
+            echo "| duration | ${{ steps.preflight.outputs.duration || 'n/a' }}s |"
+            echo "| privacy | \`${PRIVACY}\` |"
+            echo "| dry run | \`${{ inputs.dry_run }}\` |"
+            echo "| url | ${{ steps.upload.outputs.video_url || 'n/a' }} |"
+            echo ""
+            echo "Uploaded as **${PRIVACY}**. Review it in YouTube Studio and publish"
+            echo "manually once it clears the Gate 4 checklist in docs/production-plan.md."
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      # The receipt is the one thing here that cannot be regenerated: which
+      # video id a concept became. Kept as long as the gate1 evidence.
+      - name: Upload receipt
+        if: ${{ !inputs.dry_run }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: upload-${{ inputs.slug }}
+          path: outputs/uploads/${{ inputs.slug }}.json
+          if-no-files-found: warn
+          retention-days: 30
