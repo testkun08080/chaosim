@@ -74,5 +74,10 @@ If you see `data-composition-id not registered` or 45-second timeouts during Hyp
 2. Check `.env.example` for `HYPERFRAMES_FFMPEG_PATH` if static-ffmpeg v8 incompatibilities arise
 
 ## Environment Variables
-See `.env.example`. Key vars: `ANTHROPIC_API_KEY`, `YOUTUBE_CLIENT_SECRET`, `BLENDER_PATH`,
-`HYPERFRAMES_PATH`, `HYPERFRAMES_FFMPEG_PATH` (if needed), `VOICEVOX_URL`
+See `.env.example`. Key vars: `ANTHROPIC_API_KEY`, `YOUTUBE_CLIENT_SECRET_PATH`, `BLENDER_PATH`,
+`HYPERFRAMES_PATH`, `HYPERFRAMES_FFMPEG_PATH` (if needed), `VOICEVOX_URL`.
+
+YouTube upload has two credential paths. Locally it uses `YOUTUBE_CLIENT_SECRET_PATH` plus a
+pickled token cache; on GitHub Actions it uses `YOUTUBE_CLIENT_ID` / `YOUTUBE_CLIENT_SECRET` /
+`YOUTUBE_REFRESH_TOKEN`, which take priority. Mint those three with
+`python scripts/chaosim.py youtube-auth` — see `docs/ci.md`.

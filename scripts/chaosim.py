@@ -162,21 +162,94 @@ def run(concept_file: str, upload: bool, preset: str | None, stages: str,
 
 @cli.command()
 @click.argument("video_file", type=click.Path(exists=True))
-@click.option("--concept", default=None, help="Concept YAML for metadata")
+@click.option("--concept", default=None, type=click.Path(exists=True),
+              help="Concept YAML for metadata")
 @click.option("--thumbnail", "thumbnail_file", default=None, type=click.Path(exists=True),
               help="Thumbnail PNG to set on the uploaded video")
 @click.option("--privacy", default="private", type=click.Choice(["private", "unlisted", "public"]))
-def upload(video_file: str, concept: str | None, thumbnail_file: str | None, privacy: str):
-    """Upload a video to YouTube."""
-    from pipeline.uploader import upload_video
-    from pipeline.planner import load_concept
+@click.option("--run-url", default=None, help="CI run URL, appended to the video description")
+@click.option("--record-dir", default=None,
+              help="Write an upload receipt JSON here (default: settings output.uploads_dir)")
+@click.option("--dry-run", is_flag=True,
+              help="Authenticate and build the request body, but do not upload")
+def upload(video_file: str, concept: str | None, thumbnail_file: str | None, privacy: str,
+           run_url: str | None, record_dir: str | None, dry_run: bool):
+    """Upload a video to YouTube (privacyStatus=private is YouTube's closest thing to a draft)."""
+    from pipeline.config import load_settings
+    from pipeline.planner import load_concept, normalize_concept
+    from pipeline.uploader import (build_video_body, get_authenticated_service, upload_video,
+                                   write_upload_record)
 
     video_path = Path(video_file)
-    concept_data = load_concept(Path(concept)) if concept else {"caption": video_path.stem}
+    # normalize_concept matches what `run --upload` feeds the uploader.
+    concept_data = (normalize_concept(load_concept(Path(concept))) if concept
+                    else {"caption": video_path.stem})
+    slug = concept_data.get("slug") or video_path.stem
+    extra = f"Built by GitHub Actions: {run_url}" if run_url else ""
+
     console.print(Panel(f"Uploading: [bold]{video_path.name}[/bold]", style="magenta"))
-    url = upload_video(video_path, concept_data, privacy,
-                       thumbnail_path=Path(thumbnail_file) if thumbnail_file else None)
-    console.print(f"[green]Uploaded:[/green] {url}")
+
+    # A credential problem is an operator error, not a bug — report it as a one-line
+    # message rather than a traceback, since CI logs surface only the tail.
+    try:
+        if dry_run:
+            body = build_video_body(concept_data, privacy, fallback_title=video_path.stem,
+                                    extra_description=extra)
+            get_authenticated_service()   # prove credentials work without spending quota
+            console.print("[yellow]--dry-run:[/yellow] credentials OK, not uploading")
+            console.print(f"[bold]Title:[/bold] {body['snippet']['title']}")
+            console.print(f"[bold]Tags:[/bold] {', '.join(body['snippet']['tags'])}")
+            console.print(f"[bold]Privacy:[/bold] {body['status']['privacyStatus']}")
+            return
+
+        result = upload_video(video_path, concept_data, privacy,
+                              thumbnail_path=Path(thumbnail_file) if thumbnail_file else None,
+                              extra_description=extra)
+    except RuntimeError as exc:
+        raise click.ClickException(str(exc)) from exc
+
+    target = record_dir or load_settings().get("output", {}).get("uploads_dir", "outputs/uploads")
+    record = write_upload_record(Path(target), slug, result, source_video=str(video_path),
+                                 concept_path=concept, run_url=run_url)
+    console.print(f"[green]Uploaded:[/green] {result['url']}")
+    console.print(f"[green]Record:[/green] {record}")
+
+
+@cli.command("youtube-auth")
+@click.option("--client-secret", "client_secret_file", default=None, type=click.Path(exists=True),
+              help="OAuth client secret JSON (default: $YOUTUBE_CLIENT_SECRET_PATH)")
+def youtube_auth(client_secret_file: str | None):
+    """Mint a YouTube refresh token for CI. Run this locally — it opens a browser."""
+    from google_auth_oauthlib.flow import InstalledAppFlow
+    from pipeline.uploader import SCOPES, client_secret_path
+
+    secret = Path(client_secret_file) if client_secret_file else client_secret_path()
+    if not secret.exists():
+        raise click.ClickException(
+            f"OAuth client secret not found at {secret}. Create an OAuth client of type "
+            "'Desktop app' in Google Cloud Console and download the JSON."
+        )
+
+    console.print(Panel("Opening browser for YouTube consent…", style="magenta"))
+    flow = InstalledAppFlow.from_client_secrets_file(str(secret), SCOPES)
+    # prompt='consent' is required: without it Google omits refresh_token on re-authorization.
+    creds = flow.run_local_server(port=0, access_type="offline", prompt="consent")
+
+    if not creds.refresh_token:
+        raise click.ClickException(
+            "Google returned no refresh token. Revoke this app at "
+            "https://myaccount.google.com/permissions and try again."
+        )
+
+    console.print("\n[green]Store these as GitHub secrets (environment: youtube):[/green]\n")
+    for name, value in (("YOUTUBE_CLIENT_ID", creds.client_id),
+                        ("YOUTUBE_CLIENT_SECRET", creds.client_secret),
+                        ("YOUTUBE_REFRESH_TOKEN", creds.refresh_token)):
+        click.echo(f"{name}={value}")
+    console.print(
+        "\n[yellow]Note:[/yellow] a token minted while the OAuth consent screen is in "
+        "'Testing' expires after 7 days. Publish the app to 'In Production' first."
+    )
 
 
 @cli.command()
