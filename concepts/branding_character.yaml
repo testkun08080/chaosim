@@ -1,0 +1,25 @@
+title: "Chaos Sim — Character Thumbnail"
+slug: branding_character
+simulator: blender
+scene_script: branding_assets
+duration_sec: 1
+description: >
+  Round character thumbnail: the mascot texture mapped onto a UV sphere.
+  Swap the art via params.texture_path without changing the scene script.
+hook: "Round mascot thumb"
+viral_angle: "Brand asset — not a Short"
+params:
+  shot: character
+  still: true
+  resolution: [1080, 1080]
+  texture_path: assets/branding/character.png
+  studio_style: soft
+  camera_distance: 4.2
+  camera_height: 1.05
+  camera_pitch_deg: 90
+  camera_lens: 50
+render_preset: medium
+music_mood: "n/a"
+caption: "Chaos Sim character thumbnail"
+hashtags:
+  - branding
