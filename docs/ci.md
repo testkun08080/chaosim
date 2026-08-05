@@ -114,6 +114,10 @@ YouTube Data API に draft という状態は存在しない。`status.privacySt
 `CI` / `GITHUB_ACTIONS` が立っている状態で 3 番目に落ちたときは、`run_local_server()` を
 呼ぶ前に明示的なエラーで止める（ランナー上でブラウザ待ちにハングさせないため）。
 
+この「立っている」の判定は `pipeline/config.py` の `env_flag()` を使い、
+`1` / `true` / `yes` だけを真とする。`CI=false` を明示的に設定する環境があるため、
+「変数が存在する」だけでブラウザ経路を塞がないようにしている。
+
 ### quota
 
 `videos.insert` は 1600 units、`thumbnails.set` は 50 units。既定の日次上限は 10,000 units
@@ -129,6 +133,8 @@ concept YAML 由来。`caption` → タイトル（100文字で切り詰め）�
 
 投稿後、`outputs/uploads/<slug>.json` にレシート（video id・URL・公開設定・run URL）が
 残り、`upload-<slug>` アーティファクトとして30日保持される。
+`privacy` には**要求値ではなく YouTube が返した実際の状態**を記録する（未監査プロジェクトからの
+投稿は強制的に private になるため）。要求値は `requested_privacy` に併記する。
 
 ## プリセットとコストの制約
 
