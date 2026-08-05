@@ -15,4 +15,5 @@ AVAILABLE_SCENES = [
     "growing_ball",
     "pyramid_collapse",
     "funnel_vortex",
+    "branding_assets",
 ]

@@ -104,8 +104,14 @@ else:
         except TypeError:
             continue
 
-scene.render.resolution_x = 1080
-scene.render.resolution_y = 1920
+# Branding / still concepts may override the Shorts 9:16 default.
+_res = params.get("resolution") or concept.get("resolution")
+if isinstance(_res, (list, tuple)) and len(_res) >= 2:
+    scene.render.resolution_x = int(_res[0])
+    scene.render.resolution_y = int(_res[1])
+else:
+    scene.render.resolution_x = 1080
+    scene.render.resolution_y = 1920
 scene.render.resolution_percentage = int(render_settings.get("resolution_percentage", 100))
 scene.render.fps = int(render_settings.get("fps", 60))
 if scene.render.engine == "CYCLES" and hasattr(scene, "cycles"):
@@ -116,18 +122,33 @@ if scene.render.engine == "CYCLES" and hasattr(scene, "cycles"):
     except Exception:
         pass
 
-# Blender 5.x image format enums vary by build/addons. Render a PNG sequence,
-# then mux to MP4 with system ffmpeg for a stable output contract.
+# Still mode: single PNG (channel art / character thumb) when the output path
+# is .png, duration is zero, or params.still is set. Otherwise keep the PNG
+# sequence → ffmpeg MP4 contract used by simulation Shorts.
+_still = (
+    output_path.suffix.lower() == ".png"
+    or bool(params.get("still"))
+    or float(duration_sec or 0) <= 0
+)
+if _still and output_path.suffix.lower() != ".png":
+    output_path = output_path.with_suffix(".png")
+
 frames_dir = output_path.parent / f"{output_path.stem}_frames"
 if frames_dir.exists():
     shutil.rmtree(frames_dir)
-frames_dir.mkdir(parents=True, exist_ok=True)
 
 scene.render.image_settings.file_format = "PNG"
 scene.render.image_settings.color_mode = "RGB"
-scene.render.filepath = str(frames_dir / "frame_")
 scene.frame_start = 1
-scene.frame_end = max(1, int(duration_sec * scene.render.fps))
+if _still:
+    scene.frame_end = 1
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    # Blender appends the file-format extension; point at the stem.
+    scene.render.filepath = str(output_path.with_suffix(""))
+else:
+    frames_dir.mkdir(parents=True, exist_ok=True)
+    scene.render.filepath = str(frames_dir / "frame_")
+    scene.frame_end = max(1, int(duration_sec * scene.render.fps))
 
 # CI cost guardrail: cap the frame count so a long concept cannot burn the whole
 # job budget before failing. Staged scenes (render_staged) recompute frame_end
@@ -191,25 +212,41 @@ else:
     else:
         events_path.write_text(json.dumps({"events": []}), encoding="utf-8")
 
-    # Render animation frames
-    bpy.ops.render.render(animation=True)
+    if _still:
+        bpy.ops.render.render(write_still=True)
+    else:
+        bpy.ops.render.render(animation=True)
 
-ffmpeg = shutil.which("ffmpeg") or "ffmpeg"
-fps = scene.render.fps
-cmd = [
-    ffmpeg, "-y",
-    "-framerate", str(fps),
-    "-i", str(frames_dir / "frame_%04d.png"),
-    "-c:v", "libx264", "-pix_fmt", "yuv420p",
-    "-movflags", "+faststart",
-    str(output_path),
-]
-print("Mux:", " ".join(cmd))
-result = subprocess.run(cmd, capture_output=True, text=True)
-if result.returncode != 0:
-    print(result.stderr)
-    raise RuntimeError(f"ffmpeg mux failed ({result.returncode})")
+if _still:
+    # Blender writes filepath + ".png"; tolerate a padded still name if present.
+    written = output_path if output_path.exists() else Path(str(output_path.with_suffix("")) + ".png")
+    if not written.exists():
+        candidates = sorted(output_path.parent.glob(f"{output_path.stem}*.png"))
+        if candidates:
+            written = candidates[0]
+            if written != output_path:
+                written.replace(output_path)
+                written = output_path
+    if not output_path.exists():
+        raise RuntimeError(f"Still render finished but output missing: {output_path}")
+    print(f"Still render complete: {output_path}")
+else:
+    ffmpeg = shutil.which("ffmpeg") or "ffmpeg"
+    fps = scene.render.fps
+    cmd = [
+        ffmpeg, "-y",
+        "-framerate", str(fps),
+        "-i", str(frames_dir / "frame_%04d.png"),
+        "-c:v", "libx264", "-pix_fmt", "yuv420p",
+        "-movflags", "+faststart",
+        str(output_path),
+    ]
+    print("Mux:", " ".join(cmd))
+    result = subprocess.run(cmd, capture_output=True, text=True)
+    if result.returncode != 0:
+        print(result.stderr)
+        raise RuntimeError(f"ffmpeg mux failed ({result.returncode})")
 
-# Keep disk usage small for preview runs.
-shutil.rmtree(frames_dir, ignore_errors=True)
-print(f"Render complete: {output_path}")
+    # Keep disk usage small for preview runs.
+    shutil.rmtree(frames_dir, ignore_errors=True)
+    print(f"Render complete: {output_path}")

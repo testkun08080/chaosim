@@ -1,0 +1,29 @@
+title: "Chaos Sim — Channel Art"
+slug: branding_channel
+simulator: blender
+scene_script: branding_assets
+duration_sec: 1
+description: >
+  Channel branding still: sphere, triangle, and square with the Chaos Sim name.
+  Render separately from the character thumbnail via params.shot.
+hook: "Simple shapes, clear channel identity"
+viral_angle: "Brand asset — not a Short"
+params:
+  shot: channel
+  still: true
+  resolution: [1920, 1080]
+  channel_name: "Chaos Sim"
+  tagline: "chaos simulation shorts"
+  shape_color: [0.55, 0.78, 0.92]
+  accent_color: [0.35, 0.72, 0.88]
+  text_color: [0.12, 0.18, 0.28]
+  studio_style: soft
+  camera_distance: 7.5
+  camera_height: 1.4
+  camera_pitch_deg: 78
+  camera_lens: 50
+render_preset: medium
+music_mood: "n/a"
+caption: "Chaos Sim channel art"
+hashtags:
+  - branding

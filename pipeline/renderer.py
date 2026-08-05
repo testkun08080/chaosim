@@ -40,13 +40,20 @@ def render_concept(concept: dict, concept_path: Path, output_dir: Path,
 
     Falls back to an ffmpeg-generated placeholder clip when Blender is not
     installed (or CHAOSIM_STUB=1), so the rest of the pipeline stays testable.
+
+    Branding stills (``params.still`` / ``duration_sec <= 0``) write a PNG
+    instead of an MP4.
     """
     output_dir.mkdir(parents=True, exist_ok=True)
     slug = concept.get("slug", "render")
-    output_path = output_dir / f"{slug}.mp4"
+    params = concept.get("params") or {}
+    still = bool(params.get("still")) or float(concept.get("duration_sec") or 0) <= 0
+    output_path = output_dir / (f"{slug}.png" if still else f"{slug}.mp4")
 
     if not blender_available():
         print("Blender not available — writing ffmpeg stub footage")
+        if still:
+            return _stub_still(concept, output_path)
         return _stub_render(concept, output_path)
 
     blender = get_blender_path()
@@ -74,6 +81,25 @@ def render_concept(concept: dict, concept_path: Path, output_dir: Path,
     if not output_path.exists():
         raise RuntimeError(f"Blender finished but output missing: {output_path}")
 
+    return output_path
+
+
+def _stub_still(concept: dict, output_path: Path) -> Path:
+    """Minimal PNG placeholder when Blender is unavailable."""
+    title = escape_drawtext(concept.get("title", "Chaosim"))
+    params = concept.get("params") or {}
+    res = params.get("resolution") or concept.get("resolution") or [1080, 1080]
+    w, h = int(res[0]), int(res[1])
+    font = drawtext_font_prefix()
+    run_ffmpeg([
+        "-f", "lavfi", "-i", f"color=c=0x1a1a2e:s={w}x{h}:d=0.1",
+        "-frames:v", "1",
+        "-vf", (
+            f"drawtext={font}text='{title}':fontsize=48:fontcolor=white:"
+            "x=(w-text_w)/2:y=(h-text_h)/2"
+        ),
+        str(output_path),
+    ])
     return output_path
 
 
