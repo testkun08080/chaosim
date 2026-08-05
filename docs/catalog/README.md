@@ -7,10 +7,10 @@
 
 | | |
 |---|---|
-| 企画数 | 22 |
+| 企画数 | 24 |
 | error | 0 |
 | warning | 2 |
-| params 到達率 | **227 / 229 (99%)** |
+| params 到達率 | **249 / 251 (99%)** |
 
 > **2 個の params が YAML に書かれているだけでコードに届いていない。**
 > `runner.py` は `run_simulation()` に params を渡さないため、`setup_scene()` の外で
@@ -25,6 +25,8 @@ error / warning の多い順。
 |---|---|---:|---|---:|---|
 | [`sample_002_fluid_ink`](#sample_002_fluid_ink) | `fluid_ink` | 20s | high | 4/5 | ⚠️ warn 1 |
 | [`sample_003_sand_collapse`](#sample_003_sand_collapse) | `sand_collapse` | 25s | high | 5/6 | ⚠️ warn 1 |
+| [`branding_channel`](#branding_channel) | `branding_assets` | 1s | medium | 13/13 | ✅ |
+| [`branding_character`](#branding_character) | `branding_assets` | 1s | medium | 9/9 | ✅ |
 | [`cloth_by_faces`](#cloth_by_faces) 📄 | `cloth_drop_faces` ⧉ | 20s | high | 29/29 | ✅ |
 | [`double_spiral_domino`](#double_spiral_domino) 📄 | `domino_chain` | 18s | preview | 6/6 | ✅ |
 | [`funnel_vortex_marbles`](#funnel_vortex_marbles) 📄 | `funnel_vortex` | 18s | preview | 14/14 | ✅ |
@@ -65,6 +67,22 @@ Ink Chaos — 3 Colors, One Tank
 > Wall disappears at frame 1 — instant avalanche
 
 - ⚠️ warn `dead-params` — 1/6 の params がコードに届いていない: `color_gradient`
+
+### branding_channel
+
+Chaos Sim — Channel Art
+`concepts/branding_channel.yaml`
+> Simple shapes, clear channel identity
+
+指摘なし。
+
+### branding_character
+
+Chaos Sim — Character Thumbnail
+`concepts/branding_character.yaml`
+> Round mascot thumb
+
+指摘なし。
 
 ### cloth_by_faces
 
@@ -262,6 +280,7 @@ Phase 1 コンタクトシート: [`docs/gate1/soft_body_torus_compare_contact.p
 
 | scene_script | setup_scene | run_simulation | render_staged | collect_impact_events | params | 使っている企画 |
 |---|:-:|:-:|:-:|:-:|---:|---|
+| `branding_assets` | ✅ | ✅ | — | — | 12 | `branding_channel`, `branding_character` |
 | `cloth_drop_faces` | ✅ | ✅ | ✅ | ✅ | 40 | `cloth_by_faces` |
 | `domino_chain` | ✅ | ✅ | — | ✅ | 6 | `double_spiral_domino`, `local_colorful_domino`, `local_local_domino`, `quick_domino_chain`, `sample_005_domino_chain` |
 | `double_pendulum` | ✅ | ✅ | — | — | 7 | `sample_001_double_pendulum` |
@@ -279,7 +298,7 @@ Phase 1 コンタクトシート: [`docs/gate1/soft_body_torus_compare_contact.p
 | `sand_collapse` | ✅ | ✅ | — | — | 5 | `sample_003_sand_collapse`, `sand_avalanche_asmr` |
 | `soft_body_torus_compare` | ✅ | ✅ | — | ✅ | 18 | `soft_body_torus_compare` |
 
-`runner.py` が直接読む params: `face_counts`, `stage_duration_sec`（段階シーンはこれで尺が決まるので、YAML に書いても死に設定にはならない）
+`runner.py` が直接読む params: `face_counts`, `resolution`, `stage_duration_sec`, `still`（段階シーンはこれで尺が決まるので、YAML に書いても死に設定にはならない）
 
 ## 判定の仕方
 
