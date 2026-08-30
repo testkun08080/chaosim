@@ -1,0 +1,72 @@
+title: "Sand Wall Collapse — ComfyUI"
+slug: sand_avalanche_asmr_comfy
+source: comfyui
+duration_sec: 15
+description: >
+  砂の壁が崩れて安息角に落ち着くまでを3カットで見せる。
+  Blender 版 sand_avalanche_asmr (concepts/generated/) と同じ企画の生成版。
+hook: "1カット目、静止した砂の壁が1秒で崩れ始める"
+viral_angle: >
+  粒状の崩落は ASMR 系で安定した需要がある。生成に回す判断は
+  「粒の一つ一つを視聴者が検証できない」ことによる。数えられない題材なので、
+  物理の正しさより見た目の説得力が効き、そこは生成側が強い。
+  Blender 版は gate1 で framing/sim が落ちている（カメラが setup_scene 内に
+  直書きで、9:16 の縦が使えていない）。生成側はカメラを構図として指示できる。
+
+comfyui:
+  recipe: generative_shots
+  resolution: 480P          # Phase 1 スライス。ゲートを通るまで上げない
+  seed: 4100
+  shots:
+    - name: shot_01_wall
+      # 画だけ。動きの語を入れない（画像モデルは動きの語を構図として読む）
+      keyframe_prompt: >
+        Vertical 9:16 composition. A tall wall of fine dry orange sand piled
+        steeply against a dark seamless studio backdrop, raking side light from
+        the left, sharp grain texture, the crest of the pile near the top of the
+        frame, cinematic product photography, shallow depth of field.
+      # 動きだけ。カメラを止める指示を必ず入れる
+      prompt: >
+        The camera holds completely still. The face of the sand wall gives way
+        and avalanches downward in one continuous slide, grains streaming over
+        each other and fanning out at the base.
+      duration: 5
+      cues:
+        - {t: 0.9, type: collapse, intensity: 0.95}
+        - {t: 1.8, type: drop, intensity: 0.6}
+        - {t: 3.2, type: drop, intensity: 0.45}
+    - name: shot_02_runout
+      keyframe_prompt: >
+        Vertical 9:16 composition. A spreading fan of fine orange sand running
+        out across a dark floor, the leading edge mid-motion, raking side light,
+        fine grain detail, macro depth of field, dark seamless backdrop.
+      prompt: >
+        The camera holds completely still. The sand keeps running out across the
+        floor, the leading edge creeping forward and slowing as it spreads.
+      duration: 5
+      cues:
+        - {t: 0.4, type: drop, intensity: 0.55}
+        - {t: 2.6, type: settle, intensity: 0.3}
+    - name: shot_03_settle
+      keyframe_prompt: >
+        Vertical 9:16 composition. A smooth cone of settled orange sand at its
+        angle of repose on a dark floor, a few last grains on the slope, soft
+        raking light, dark seamless backdrop, macro detail.
+      prompt: >
+        The camera holds completely still. The last grains trickle down the
+        slope and everything comes to rest.
+      duration: 5
+      cues:
+        - {t: 0.6, type: settle, intensity: 0.35}
+        - {t: 2.0, type: tick, intensity: 0.2}
+
+render_preset: preview
+music_mood: "granular ASMR rush, soft and dry, no melody"
+caption: "砂の壁が崩れるだけ #shorts #asmr #satisfying #simulation"
+hashtags: [asmr, satisfying, simulation, physics, shorts]
+video_template: default_shorts
+narration:
+  enabled: false
+thumbnail:
+  style: vertical_cover
+  headline: 崩れる砂の壁

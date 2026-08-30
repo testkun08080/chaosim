@@ -1,16 +1,18 @@
 # 企画カタログ / 健康診断
 
-`concepts/**/*.yaml` と `simulators/blender/scenes/*.py` を突き合わせた自動生成ビュー。
+`concepts/**/*.yaml` を、それが名指しするコード（`simulators/blender/scenes/*.py` と
+`simulators/comfyui/recipes/*.py`）と突き合わせた自動生成ビュー。
 **このファイルは編集しない** — `python scripts/chaosim.py catalog` で再生成される。
 （生成日時はあえて埋めていない。毎回の実行で中身の変わらない差分が出るため。
 更新時刻は git のコミット履歴で追う）
 
 | | |
 |---|---|
-| 企画数 | 24 |
+| 企画数 | 29 |
+| source 内訳 | blender 24 / comfyui 3 / hybrid 2 |
 | error | 0 |
 | warning | 2 |
-| params 到達率 | **249 / 251 (99%)** |
+| params 到達率 | **297 / 299 (99%)** |
 
 > **2 個の params が YAML に書かれているだけでコードに届いていない。**
 > `runner.py` は `run_simulation()` に params を渡さないため、`setup_scene()` の外で
@@ -21,34 +23,39 @@
 
 error / warning の多い順。
 
-| 企画 | scene_script | 尺 | preset | params | 状態 |
-|---|---|---:|---|---:|---|
-| [`sample_002_fluid_ink`](#sample_002_fluid_ink) | `fluid_ink` | 20s | high | 4/5 | ⚠️ warn 1 |
-| [`sample_003_sand_collapse`](#sample_003_sand_collapse) | `sand_collapse` | 25s | high | 5/6 | ⚠️ warn 1 |
-| [`branding_channel`](#branding_channel) | `branding_assets` | 1s | medium | 13/13 | ✅ |
-| [`branding_character`](#branding_character) | `branding_assets` | 1s | medium | 9/9 | ✅ |
-| [`cloth_by_faces`](#cloth_by_faces) 📄 | `cloth_drop_faces` ⧉ | 20s | high | 29/29 | ✅ |
-| [`double_spiral_domino`](#double_spiral_domino) 📄 | `domino_chain` | 18s | preview | 6/6 | ✅ |
-| [`funnel_vortex_marbles`](#funnel_vortex_marbles) 📄 | `funnel_vortex` | 18s | preview | 14/14 | ✅ |
-| [`glass_fracture_wall`](#glass_fracture_wall) 📄 | `glass_fracture_wall` | 10s | preview | 14/14 | ✅ |
-| [`growing_ball_bounce`](#growing_ball_bounce) 📄 | `growing_ball` | 20s | preview | 14/14 | ✅ |
-| [`local_colorful_domino`](#local_colorful_domino) | `domino_chain` | 6s | preview | 6/6 | ✅ |
-| [`local_local_domino`](#local_local_domino) | `domino_chain` | 6s | preview | 6/6 | ✅ |
-| [`magnetic_pendulum_ufo`](#magnetic_pendulum_ufo) 📄 | `magnetic_pendulum` | 15s | preview | 8/8 | ✅ |
-| [`marble_elimination_race`](#marble_elimination_race) 📄 | `marble_race` | 18s | preview | 14/14 | ✅ |
-| [`paper_to_cloth`](#paper_to_cloth) 📄 | `paper_to_cloth` ⧉ | 24s | preview | 10/10 | ✅ |
-| [`press_crush_showdown`](#press_crush_showdown) 📄 | `press_crush` | 15s | preview | 13/13 | ✅ |
-| [`pyramid_collapse_100`](#pyramid_collapse_100) 📄 | `pyramid_collapse` | 15s | preview | 14/14 | ✅ |
-| [`quick_domino_chain`](#quick_domino_chain) | `domino_chain` | 6s | preview | 6/6 | ✅ |
-| [`ring_escape_5rings`](#ring_escape_5rings) 📄 | `ring_escape` | 12s | preview | 8/8 | ✅ |
-| [`ring_escape_tall`](#ring_escape_tall) 📄 | `ring_escape` | 14s | preview | 13/13 | ✅ |
-| [`sample_001_double_pendulum`](#sample_001_double_pendulum) | `double_pendulum` | 30s | high | 7/7 | ✅ |
-| [`sample_004_lorenz_attractor`](#sample_004_lorenz_attractor) | `lorenz_attractor` | 30s | high | 7/7 | ✅ |
-| [`sample_005_domino_chain`](#sample_005_domino_chain) | `domino_chain` | 20s | high | 6/6 | ✅ |
-| [`sand_avalanche_asmr`](#sand_avalanche_asmr) 📄 | `sand_collapse` | 15s | preview | 5/5 | ✅ |
-| [`soft_body_torus_compare`](#soft_body_torus_compare) 📄 | `soft_body_torus_compare` | 12s | preview | 18/18 | ✅ |
+| 企画 | source | 駆動するコード | 尺 | preset | params / cue | 状態 |
+|---|---|---|---:|---|---:|---|
+| [`sample_002_fluid_ink`](#sample_002_fluid_ink) | blender | `fluid_ink` | 20s | high | 4/5 | ⚠️ warn 1 |
+| [`sample_003_sand_collapse`](#sample_003_sand_collapse) | blender | `sand_collapse` | 25s | high | 5/6 | ⚠️ warn 1 |
+| [`branding_channel`](#branding_channel) | blender | `branding_assets` | 1s | medium | 13/13 | ✅ |
+| [`branding_character`](#branding_character) | blender | `branding_assets` | 1s | medium | 9/9 | ✅ |
+| [`cloth_by_faces`](#cloth_by_faces) 📄 | blender | `cloth_drop_faces` ⧉ | 20s | high | 29/29 | ✅ |
+| [`cloth_by_faces_hybrid`](#cloth_by_faces_hybrid) | hybrid | `cloth_drop_faces` ⧉ + `look_assets` 🎞 | 20s | preview | 29/29 | ✅ |
+| [`double_spiral_domino`](#double_spiral_domino) 📄 | blender | `domino_chain` | 18s | preview | 6/6 | ✅ |
+| [`funnel_vortex_marbles`](#funnel_vortex_marbles) 📄 | blender | `funnel_vortex` | 18s | preview | 14/14 | ✅ |
+| [`glass_fracture_wall`](#glass_fracture_wall) 📄 | blender | `glass_fracture_wall` | 10s | preview | 14/14 | ✅ |
+| [`glass_fracture_wall_comfy`](#glass_fracture_wall_comfy) | comfyui | `generative_shots` 🎞 | 15s | preview | 3カット/9cue | ✅ |
+| [`growing_ball_bounce`](#growing_ball_bounce) 📄 | blender | `growing_ball` | 20s | preview | 14/14 | ✅ |
+| [`growing_ball_bounce_hybrid`](#growing_ball_bounce_hybrid) | hybrid | `growing_ball` + `look_assets` 🎞 | 20s | preview | 19/19 | ✅ |
+| [`local_colorful_domino`](#local_colorful_domino) | blender | `domino_chain` | 6s | preview | 6/6 | ✅ |
+| [`local_local_domino`](#local_local_domino) | blender | `domino_chain` | 6s | preview | 6/6 | ✅ |
+| [`magnetic_pendulum_ufo`](#magnetic_pendulum_ufo) 📄 | blender | `magnetic_pendulum` | 15s | preview | 8/8 | ✅ |
+| [`marble_elimination_race`](#marble_elimination_race) 📄 | blender | `marble_race` | 18s | preview | 14/14 | ✅ |
+| [`paper_to_cloth`](#paper_to_cloth) 📄 | blender | `paper_to_cloth` ⧉ | 24s | preview | 10/10 | ✅ |
+| [`press_crush_showdown`](#press_crush_showdown) 📄 | blender | `press_crush` | 15s | preview | 13/13 | ✅ |
+| [`press_crush_showdown_comfy`](#press_crush_showdown_comfy) | comfyui | `generative_shots` 🎞 | 15s | preview | 3カット/8cue | ✅ |
+| [`pyramid_collapse_100`](#pyramid_collapse_100) 📄 | blender | `pyramid_collapse` | 15s | preview | 14/14 | ✅ |
+| [`quick_domino_chain`](#quick_domino_chain) | blender | `domino_chain` | 6s | preview | 6/6 | ✅ |
+| [`ring_escape_5rings`](#ring_escape_5rings) 📄 | blender | `ring_escape` | 12s | preview | 8/8 | ✅ |
+| [`ring_escape_tall`](#ring_escape_tall) 📄 | blender | `ring_escape` | 14s | preview | 13/13 | ✅ |
+| [`sample_001_double_pendulum`](#sample_001_double_pendulum) | blender | `double_pendulum` | 30s | high | 7/7 | ✅ |
+| [`sample_004_lorenz_attractor`](#sample_004_lorenz_attractor) | blender | `lorenz_attractor` | 30s | high | 7/7 | ✅ |
+| [`sample_005_domino_chain`](#sample_005_domino_chain) | blender | `domino_chain` | 20s | high | 6/6 | ✅ |
+| [`sand_avalanche_asmr`](#sand_avalanche_asmr) 📄 | blender | `sand_collapse` | 15s | preview | 5/5 | ✅ |
+| [`sand_avalanche_asmr_comfy`](#sand_avalanche_asmr_comfy) | comfyui | `generative_shots` 🎞 | 15s | preview | 3カット/7cue | ✅ |
+| [`soft_body_torus_compare`](#soft_body_torus_compare) 📄 | blender | `soft_body_torus_compare` | 12s | preview | 18/18 | ✅ |
 
-<sub>📄 = `docs/gate1/` にコンタクトシートあり ／ ⧉ = 段階シーン（`render_staged`）</sub>
+<sub>📄 = `docs/gate1/` にコンタクトシートあり ／ ⧉ = 段階シーン（`render_staged`）／ 🎞 = ComfyUI レシピ</sub>
 
 ## 指摘の詳細
 
@@ -94,6 +101,14 @@ Chaos Sim — Character Thumbnail
 
 Phase 1 コンタクトシート: [`docs/gate1/cloth_by_faces_contact.png`](../gate1/cloth_by_faces_contact.png)
 
+### cloth_by_faces_hybrid
+
+面数で変わる布 — Hybrid
+`concepts/comfyui/cloth_by_faces_hybrid.yaml`
+> 面数16のカクカクした金属シートが、面数を上げるほど布のように垂れ込む
+
+指摘なし。
+
 ### double_spiral_domino
 
 120 Dominoes, One Tight Spiral
@@ -124,6 +139,14 @@ Glass Wall Shatter — Sphere Impact
 
 Phase 1 コンタクトシート: [`docs/gate1/glass_fracture_wall_contact.png`](../gate1/glass_fracture_wall_contact.png)
 
+### glass_fracture_wall_comfy
+
+Glass Wall Shatter — ComfyUI
+`concepts/comfyui/glass_fracture_wall_comfy.yaml`
+> 1カット目の1秒手前、まだ無傷のガラスに球が入ってくる
+
+指摘なし。
+
 ### growing_ball_bounce
 
 The Ball Grows Every Bounce
@@ -133,6 +156,14 @@ The Ball Grows Every Bounce
 指摘なし。
 
 Phase 1 コンタクトシート: [`docs/gate1/growing_ball_bounce_contact.png`](../gate1/growing_ball_bounce_contact.png)
+
+### growing_ball_bounce_hybrid
+
+The Ball Grows Every Bounce — Hybrid
+`concepts/comfyui/growing_ball_bounce_hybrid.yaml`
+> フレーム1から跳ね始める。2バウンド目には既に目に見えて大きくなっている
+
+指摘なし。
 
 ### local_colorful_domino
 
@@ -189,6 +220,14 @@ Hydraulic Press vs 48 Blocks
 指摘なし。
 
 Phase 1 コンタクトシート: [`docs/gate1/press_crush_showdown_contact.png`](../gate1/press_crush_showdown_contact.png)
+
+### press_crush_showdown_comfy
+
+Hydraulic Press vs Blocks — ComfyUI
+`concepts/comfyui/press_crush_showdown_comfy.yaml`
+> 1カット目、ブロックの山の真上からプレス面が入ってくる
+
+指摘なし。
 
 ### pyramid_collapse_100
 
@@ -262,6 +301,14 @@ Sand Wall Collapse — 3000 Grains
 
 Phase 1 コンタクトシート: [`docs/gate1/sand_avalanche_asmr_contact.png`](../gate1/sand_avalanche_asmr_contact.png)
 
+### sand_avalanche_asmr_comfy
+
+Sand Wall Collapse — ComfyUI
+`concepts/comfyui/sand_avalanche_asmr_comfy.yaml`
+> 1カット目、静止した砂の壁が1秒で崩れ始める
+
+指摘なし。
+
 ### soft_body_torus_compare
 
 0% vs 100% Soft Body — Torus Edition
@@ -281,13 +328,13 @@ Phase 1 コンタクトシート: [`docs/gate1/soft_body_torus_compare_contact.p
 | scene_script | setup_scene | run_simulation | render_staged | collect_impact_events | params | 使っている企画 |
 |---|:-:|:-:|:-:|:-:|---:|---|
 | `branding_assets` | ✅ | ✅ | — | — | 12 | `branding_channel`, `branding_character` |
-| `cloth_drop_faces` | ✅ | ✅ | ✅ | ✅ | 40 | `cloth_by_faces` |
+| `cloth_drop_faces` | ✅ | ✅ | ✅ | ✅ | 40 | `cloth_by_faces`, `cloth_by_faces_hybrid` |
 | `domino_chain` | ✅ | ✅ | — | ✅ | 6 | `double_spiral_domino`, `local_colorful_domino`, `local_local_domino`, `quick_domino_chain`, `sample_005_domino_chain` |
 | `double_pendulum` | ✅ | ✅ | — | — | 7 | `sample_001_double_pendulum` |
 | `fluid_ink` | ✅ | ✅ | — | — | 4 | `sample_002_fluid_ink` |
 | `funnel_vortex` | ✅ | ✅ | — | — | 14 | `funnel_vortex_marbles` |
 | `glass_fracture_wall` | ✅ | ✅ | — | ✅ | 14 | `glass_fracture_wall` |
-| `growing_ball` | ✅ | ✅ | — | ✅ | 14 | `growing_ball_bounce` |
+| `growing_ball` | ✅ | ✅ | — | ✅ | 22 | `growing_ball_bounce`, `growing_ball_bounce_hybrid` |
 | `lorenz_attractor` | ✅ | ✅ | — | — | 7 | `sample_004_lorenz_attractor` |
 | `magnetic_pendulum` | ✅ | ✅ | — | — | 8 | `magnetic_pendulum_ufo` |
 | `marble_race` | ✅ | ✅ | — | ✅ | 14 | `marble_elimination_race` |
@@ -300,10 +347,24 @@ Phase 1 コンタクトシート: [`docs/gate1/soft_body_torus_compare_contact.p
 
 `runner.py` が直接読む params: `face_counts`, `resolution`, `stage_duration_sec`, `still`（段階シーンはこれで尺が決まるので、YAML に書いても死に設定にはならない）
 
+## ComfyUI レシピ契約マトリクス
+
+`pipeline/comfyui_render.py` が呼ぶ契約。`build_jobs` が仕事の一覧を、
+`apply_assets` が「作った素材をどの params に差し込むか」を決める。
+`apply_assets` を持つレシピだけが `source: hybrid` の裏に立てる。
+
+| recipe | build_jobs | apply_assets | 読む項目 | 使っている企画 |
+|---|:-:|:-:|---:|---|
+| `generative_shots` | ✅ | — | 15 | `glass_fracture_wall_comfy`, `press_crush_showdown_comfy`, `sand_avalanche_asmr_comfy` |
+| `look_assets` | ✅ | ✅ | 10 | `cloth_by_faces_hybrid`, `growing_ball_bounce_hybrid` |
+
 ## 判定の仕方
 
 - **error** — レンダーが失敗するか、成果物が想定と変わる。直してから回す。
-- **warn** — 回るが企画の意図どおりにならない可能性がある。とくに `dead-params` は
-  「YAML に書いた値が効いていない」ので、パラメータ調整で直そうとしても徒労になる。
+- **warn** — 回るが企画の意図どおりにならない可能性がある。とくに `dead-params` /
+  `dead-comfyui-keys` は「YAML に書いた値が効いていない」ので、
+  パラメータ調整で直そうとしても徒労になる。
+- `no-cues` は `source: comfyui` 固有。生成映像にはベイクが無く、cue が唯一の
+  タイミング情報なので、これが無いと絵は出ても音が一切鳴らない。
 
 `python scripts/chaosim.py catalog --check` は error が1件でもあれば exit 1 する。

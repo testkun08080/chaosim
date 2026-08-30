@@ -1,0 +1,67 @@
+title: "The Ball Grows Every Bounce — Hybrid"
+slug: growing_ball_bounce_hybrid
+source: hybrid
+simulator: blender
+scene_script: growing_ball
+duration_sec: 20
+description: >
+  Blender 版 growing_ball_bounce と同じ物理をそのまま使い、画づくりだけ
+  ComfyUI に寄せたバージョン。跳ねるたびにボールが大きくなる。
+hook: "フレーム1から跳ね始める。2バウンド目には既に目に見えて大きくなっている"
+viral_angle: >
+  ViralBalls 系「跳ねるたびに大きくなるボール」の直系。
+  hybrid にした理由は gate1 verdict がはっきりしている。この企画は
+  framing/sim/hook が通り、落ちているのは look だけ
+  （dark スタジオ上に base_color 0.10 / metallic 0.7 の壁を置いたので
+  背景と分離せず、ボールが虚空で跳ねているように見える）。
+  シミュを生成に置き換えると、正確な衝突タイミング＝効果音の当て先を
+  捨てることになる。壁が見えないことだけが問題なので、
+  生成するのは背景プレート1枚でいい。
+
+comfyui:
+  recipe: look_assets
+  seed: 4400
+  assets:
+    # backdrop_image は growing_ball.py が set_world_image に渡すキー。
+    # ボールが橙で発光しているので、背景は寒色にして分離を作る。
+    - param: backdrop_image
+      name: arena_backplate
+      size: "1344x768"
+      prompt: >
+        A smooth deep teal to midnight blue gradient studio backdrop, soft
+        even falloff, subtle cool rim glow along the upper edge, completely
+        empty, no objects, no texture detail, no horizon line.
+
+params:
+  start_radius: 0.12
+  growth_rate: 1.085
+  max_bounces: 40
+  arena_width: 2.6
+  arena_height: 4.6
+  wall_thickness: 0.12
+  initial_speed: 7.5
+  initial_angle_deg: 63
+  gravity: 0.0
+  ball_color: [1.0, 0.45, 0.1]
+  camera_distance: 6.5
+  camera_height: 0.0
+  camera_pitch_deg: 90
+  camera_lens: 40
+  # gate1 の look 指摘への直接の答え。壁を寒色の明色にして自発光を少し乗せ、
+  # 橙のボールから色でも明度でも離す。生成した背景プレートがその後ろに入る。
+  wall_color: [0.28, 0.62, 0.78]
+  wall_roughness: 0.35
+  wall_metallic: 0.25
+  wall_emission_strength: 0.8
+  world_strength: 0.9
+
+render_preset: preview
+music_mood: "clean synth pings on each bounce, tempo rising with the hit rate"
+caption: "跳ねるたびに大きくなるボール #shorts #satisfying #simulation #physics"
+hashtags: [satisfying, simulation, physics, asmr, shorts]
+video_template: default_shorts
+narration:
+  enabled: false
+thumbnail:
+  style: vertical_cover
+  headline: どこまで育つ？

@@ -1,0 +1,73 @@
+title: "Hydraulic Press vs Blocks — ComfyUI"
+slug: press_crush_showdown_comfy
+source: comfyui
+duration_sec: 15
+description: >
+  プレス板が等速で降り、色ブロックの山が座屈して横に逃げ、残りが板の下で
+  一枚の塊に潰れる。Blender 版 press_crush_showdown (concepts/generated/) と
+  同じ企画の生成版。
+hook: "1カット目、ブロックの山の真上からプレス面が入ってくる"
+viral_angle: >
+  Hydraulic Press Channel が確立したフォーマット。固定カメラ・等速の下降・
+  逃げ場のない対象、の3点で成立する。生成に回す判断は Blender 版が fail
+  だったことによる。あちらは ram が depth=6.0 の巨大な円柱で画面を独占し、
+  潰される48個のブロックが床際の点にしかならず、企画の核が丸ごと画に出ていない。
+  「対象物が主役でプレス面が上から入る」という構図そのものを
+  プロンプトで指定できるのが、ここでの生成側の利点。
+
+comfyui:
+  recipe: generative_shots
+  resolution: 480P
+  seed: 4300
+  shots:
+    - name: shot_01_descend
+      keyframe_prompt: >
+        Vertical 9:16 composition. A dense pile of small brightly coloured
+        plastic blocks filling the lower two thirds of the frame, a flat steel
+        press plate entering from the top edge just above them, industrial
+        lighting, dark background, the blocks clearly the subject.
+      prompt: >
+        The camera holds completely still. The steel plate descends at a slow
+        constant rate, no easing, and makes contact with the top of the pile.
+      duration: 5
+      cues:
+        - {t: 2.4, type: impact, intensity: 0.7}
+        - {t: 3.1, type: impact, intensity: 0.5}
+    - name: shot_02_buckle
+      keyframe_prompt: >
+        Vertical 9:16 composition. A pile of small coloured plastic blocks
+        compressed under a descending flat steel plate, the pile beginning to
+        splay outward at the edges, industrial lighting, dark background,
+        close on the blocks.
+      prompt: >
+        The camera holds completely still. The plate keeps descending, the pile
+        buckles, and blocks squirt out sideways past the edge of the plate.
+      duration: 5
+      cues:
+        - {t: 0.5, type: impact, intensity: 0.9}
+        - {t: 1.2, type: whoosh, intensity: 0.6}
+        - {t: 1.9, type: impact, intensity: 0.75}
+        - {t: 3.0, type: impact, intensity: 0.6}
+    - name: shot_03_slab
+      keyframe_prompt: >
+        Vertical 9:16 composition. Coloured plastic blocks crushed flat into a
+        single dense slab under a steel press plate, scattered loose fragments
+        around it on the deck, industrial lighting, dark background.
+      prompt: >
+        The camera holds completely still. The plate presses the last of the
+        pile flat and stops. A few loose fragments rock and settle.
+      duration: 5
+      cues:
+        - {t: 0.8, type: collapse, intensity: 0.85}
+        - {t: 2.2, type: settle, intensity: 0.4}
+
+render_preset: preview
+music_mood: "industrial, low hum, heavy transients on each crush"
+caption: "プレスに48個のブロックを入れた結果 #shorts #satisfying #simulation"
+hashtags: [satisfying, simulation, physics, press, shorts]
+video_template: default_shorts
+narration:
+  enabled: false
+thumbnail:
+  style: vertical_cover
+  headline: 全部潰す

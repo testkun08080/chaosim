@@ -8,8 +8,9 @@ import yaml
 CONCEPT_SCHEMA = {
     "title": "str",
     "slug": "str (snake_case, used as filename)",
+    "source": "blender | comfyui | hybrid (which backend makes the footage)",
     "simulator": "blender | houdini | unreal",
-    "scene_script": "str (filename in simulators/blender/scenes/)",
+    "scene_script": "str (filename in simulators/blender/scenes/; blender and hybrid only)",
     "duration_sec": "int",
     "description": "str (1-2 sentences)",
     "hook": "str (first 3 seconds action that grabs attention)",
@@ -31,6 +32,50 @@ CONCEPT_SCHEMA = {
     },
     "bgm": "str (optional path to a background-music file, or omit)",
 }
+
+# Extra fields a `source: comfyui` concept needs. Kept apart from CONCEPT_SCHEMA
+# so the Blender prompt is not padded with fields it must never fill in.
+COMFYUI_SCHEMA = {
+    "source": "comfyui",
+    "comfyui": {
+        "recipe": "generative_shots",
+        "resolution": "480P (keep it here; 720P/1080P cost 2-3x more)",
+        "seed": "int",
+        "shots": [
+            {
+                "name": "shot_01",
+                "keyframe_prompt": "str — the PICTURE only: framing, material, light. No motion words.",
+                "prompt": "str — the MOTION only: what moves, and whether the camera holds still.",
+                "duration": "int (5, 10 or 15 — the model accepts nothing else)",
+                "cues": [
+                    {
+                        "t": "float — seconds from the START OF THIS SHOT",
+                        "type": "impact | drop | collapse | whoosh | settle | tick",
+                        "intensity": "float 0-1 (drives volume and which sound is picked)",
+                    }
+                ],
+            }
+        ],
+    },
+}
+
+COMFYUI_PROMPT = """This concept is rendered by generating video from prompts (ComfyUI), not by
+simulating physics. That changes what a good concept looks like:
+
+- Pick a subject whose appeal survives approximate physics: sand, powder, fluid,
+  shattering glass, crushing, melting. Avoid anything the viewer can count or
+  verify (a domino chain that must not skip, a face-count comparison).
+- Break the video into 2-5 shots of 5 seconds each. Each shot is generated
+  independently, so a shot must read on its own; do not write "continues from
+  the previous shot".
+- Keep `keyframe_prompt` and `prompt` strictly separate. The image model reads
+  motion words as composition, and the video model reads composition words as
+  camera moves; mixing them is what makes shots drift.
+- Say "the camera holds still" in `prompt` unless a move is the point. Generated
+  camera drift ruins the satisfying, locked-off look this format depends on.
+- Write `cues` for every moment a sound should land, timed from the start of
+  that shot. This is the only timing information the sound stage will have, so
+  a shot with visible impacts and no cues will be silent."""
 
 SYSTEM_PROMPT = """You are a viral short-form video producer specializing in physics simulations and chaos theory visualizations.
 Your goal: create concepts for 9:16 vertical videos (max 59s) that are visually stunning, scientifically interesting, and optimized for YouTube Shorts/TikTok virality.
@@ -103,21 +148,39 @@ def build_local_concept(topic: str) -> dict:
     }
 
 
-def generate_concept(topic: str, client: anthropic.Anthropic) -> dict:
-    """Generate a video concept for the given topic using Claude."""
+def generate_concept(topic: str, client: anthropic.Anthropic,
+                    source: str = "blender") -> dict:
+    """Generate a video concept for the given topic using Claude.
+
+    ``source`` picks which backend the concept is written for; a ComfyUI
+    concept needs a cut list and a cue sheet instead of scene params.
+    """
+    if source == "comfyui":
+        schema = {**CONCEPT_SCHEMA, **COMFYUI_SCHEMA}
+        schema.pop("scene_script", None)
+        schema.pop("params", None)
+        guidance = COMFYUI_PROMPT
+    else:
+        schema = CONCEPT_SCHEMA
+        guidance = (
+            "The concept must be implementable as a Blender Python script.\n"
+            "For `params`, include all numeric parameters needed by the scene script "
+            "(e.g., gravity, viscosity, particle_count, etc.)\n"
+            "For `scene_script`, use one of: double_pendulum, fluid_ink, sand_collapse, "
+            "lorenz_attractor, domino_chain, or suggest a new filename."
+        )
+
     prompt = f"""Generate a viral chaos simulation video concept for: "{topic}"
 
-The concept must be implementable as a Blender Python script.
 Output a single JSON object with these fields:
-{json.dumps(CONCEPT_SCHEMA, indent=2)}
+{json.dumps(schema, indent=2, ensure_ascii=False)}
 
-For `params`, include all numeric parameters needed by the scene script (e.g., gravity, viscosity, particle_count, etc.)
-For `scene_script`, use one of: double_pendulum, fluid_ink, sand_collapse, lorenz_attractor, domino_chain, or suggest a new filename.
+{guidance}
 """
 
     message = client.messages.create(
         model="claude-sonnet-4-6",
-        max_tokens=1024,
+        max_tokens=2048,
         system=SYSTEM_PROMPT,
         messages=[{"role": "user", "content": prompt}],
     )
@@ -126,7 +189,9 @@ For `scene_script`, use one of: double_pendulum, fluid_ink, sand_collapse, loren
     # Extract JSON from response
     start = text.find("{")
     end = text.rfind("}") + 1
-    return json.loads(text[start:end])
+    concept = json.loads(text[start:end])
+    concept.setdefault("source", source)
+    return concept
 
 
 def save_concept(concept: dict, output_dir: Path) -> Path:
@@ -154,6 +219,7 @@ def normalize_concept(concept: dict) -> dict:
     from pipeline.templating import load_video_template
 
     concept = dict(concept)
+    concept.setdefault("source", "blender")
     template_name = concept.get("video_template") or DEFAULT_VIDEO_TEMPLATE
     concept["video_template"] = template_name
 
