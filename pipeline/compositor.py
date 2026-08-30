@@ -10,6 +10,10 @@ from pipeline.ffmpeg_utils import (
 )
 from pipeline.postprocess import ensure_shorts_format
 
+# Every one-shot is resampled to this before being pitched, so `asetrate` shifts
+# by a known ratio no matter what the source file's own rate happens to be.
+SFX_SAMPLE_RATE = 48000
+
 
 def concat_segments(paths: list[Path], out_path: Path, fps: int = 60,
                     w: int = 1080, h: int = 1920) -> Path:
@@ -119,11 +123,18 @@ def mix_tracks(video: Path, narration: Path | None, bgm: Path | None, out_path: 
             continue
         start = float(cue.get("start", 0.0))
         vol = float(cue.get("volume", 0.55))
+        pitch = float(cue.get("pitch", 1.0))
         inputs += ["-i", str(path)]
         d = int(max(0.0, start) * 1000)
+        # Detune each hit a few percent so a chain of identical events stops
+        # sounding like one sample on a timer (docs/sfx-design.md 3-3).
+        # asetrate resamples the whole file, so the rate is restored after.
+        stage = ""
+        if abs(pitch - 1.0) > 1e-3:
+            stage = f"asetrate={SFX_SAMPLE_RATE}*{pitch},aresample={SFX_SAMPLE_RATE},"
         # apad+atrim keeps each one-shot from truncating the mix early.
         filters.append(
-            f"[{idx}:a]volume={vol},adelay={d}|{d},"
+            f"[{idx}:a]aformat=sample_rates={SFX_SAMPLE_RATE},{stage}volume={vol},adelay={d}|{d},"
             f"apad=whole_dur={total},atrim=0:{total},asetpts=PTS-STARTPTS[a{idx}]"
         )
         labels.append(f"[a{idx}]")

@@ -1,6 +1,16 @@
 # Audio catalog for Chaosim.
-# SFX reference macOS system sounds (do not copy into the repo).
-# BGM lives under assets/audio/bgm/.
+#
+# A simulation event names a *role*, never a file. `sfx_events` below turns a
+# role into a sound, in this order (pipeline/sfx_library.py):
+#
+#   1. assets/audio/sfx/<role>/*.wav  — sounds we shipped. Drop a royalty-free
+#      library in here and it wins over everything else, at no API cost.
+#   2. ComfyUI generation from the prompt below, cached by prompt hash under
+#      assets/audio/sfx/generated/ (gitignored; regenerable, not ours to ship).
+#   3. `sfx_roles` -> a macOS system sound. Last resort: Mac-only, and the
+#      original problem #1 in docs/sfx-design.md.
+#
+# BGM lives under assets/audio/bgm/ and falls back to generation the same way.
 
 system_sounds_dir: /System/Library/Sounds
 
@@ -10,6 +20,90 @@ bgm:
   ethereal: bgm/ethereal.mp3
   calm: bgm/ambient.mp3
   space: bgm/ethereal.mp3
+
+# Role + intensity -> a prompt for ElevenLabs text-to-sound-effects.
+#
+# `soft` / `mid` / `hard` are chosen by the event's `intensity` (0-0.34 /
+# 0.34-0.67 / 0.67-1). A role written flat (one `prompt`, no buckets) uses the
+# same sound at every intensity, with only the mix volume changing.
+#
+# Write these as one physical sound heard once, close and dry. Anything with a
+# long tail or a room on it smears when a chain of events overlaps, and the
+# compositor already ducks and normalises.
+#
+# `variants` generates that many alternate takes and round-robins them. Each
+# variant is a separate paid generation, so leave it at 1 unless a role fires
+# many times in one video; the mix already pitch-shifts each hit slightly.
+sfx_events:
+  impact:
+    variants: 2
+    soft:
+      prompt: >
+        A single light knock on wood, close and dry, short and tight,
+        no reverb tail, no room, no music.
+      duration: 0.6
+    mid:
+      prompt: >
+        A single firm impact of a hard object landing on a solid surface,
+        close and dry, tight attack, minimal tail, no room, no music.
+      duration: 0.9
+    hard:
+      prompt: >
+        One heavy hard impact, sharp attack with a short low thud under it,
+        close and dry, no reverb tail, no room, no music.
+      duration: 1.2
+
+  drop:
+    soft:
+      prompt: >
+        A small object landing on a hard floor once, light and dry,
+        very short, no room, no music.
+      duration: 0.5
+    mid:
+      prompt: >
+        An object dropping onto a hard floor and settling, dry and close,
+        short, no room, no music.
+      duration: 0.8
+    hard:
+      prompt: >
+        A heavy object hitting the floor once, deep and blunt, dry and close,
+        short tail, no room, no music.
+      duration: 1.1
+
+  collapse:
+    prompt: >
+      A structure giving way and collapsing, debris tumbling and settling,
+      low rumble underneath, dry and close, no music.
+    duration: 2.2
+
+  whoosh:
+    prompt: >
+      A short air movement as something passes close by, dry, no pitch,
+      no room, no music.
+    duration: 0.7
+
+  settle:
+    prompt: >
+      Small loose fragments coming to rest on a hard surface, very quiet,
+      dry and close, no room, no music.
+    duration: 1.0
+
+  tick:
+    prompt: >
+      One very short soft click, clean and dry, no tone, no room, no music.
+    duration: 0.3
+
+# Prompts for generated background music, keyed the same way as `bgm` above.
+# Used only when the mood has no file in assets/audio/bgm/.
+bgm_prompts:
+  ambient: >
+    Sparse ambient bed, slow and unobtrusive, low drone with a little air,
+    no drums, no melody, no vocals.
+  upbeat: >
+    Light rhythmic bed with a steady pulse, warm and simple, no vocals,
+    stays out of the way of sound effects.
+  ethereal: >
+    Slow floating pads, wide and soft, no drums, no melody, no vocals.
 
 # Role aliases -> Apple sound stem (without .aiff)
 sfx_roles:

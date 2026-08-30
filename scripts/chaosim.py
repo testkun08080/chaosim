@@ -50,15 +50,18 @@ def plan(topic: str, output_dir: str, local_mode: bool):
 @cli.command()
 @click.argument("concept_file", type=click.Path(exists=True))
 @click.option("--preset", default=None, help="Override render preset (preview/medium/high/ultra)")
-def render(concept_file: str, preset: str | None):
-    """Run Blender simulation and render for a concept file."""
+@click.option("--dry-run", is_flag=True,
+              help="For source: comfyui/hybrid — price the render and send nothing.")
+def render(concept_file: str, preset: str | None, dry_run: bool):
+    """Render a concept with its declared backend (blender / comfyui / hybrid)."""
     from pipeline.renderer import render_concept
     from pipeline.planner import load_concept
 
     concept_path = Path(concept_file)
     concept = load_concept(concept_path)
     console.print(Panel(f"Rendering: [bold]{concept.get('title')}[/bold]", style="yellow"))
-    output = render_concept(concept, concept_path, Path("outputs/renders"), preset)
+    output = render_concept(concept, concept_path, Path("outputs/renders"), preset,
+                            dry_run=dry_run)
     console.print(f"[green]Rendered:[/green] {output}")
 
 
@@ -342,6 +345,131 @@ def gate1_report(gate1_dir, data_dir, check):
     if check and t["verdict_pending"]:
         pending = [e["slug"] for e in record["entries"] if e["verdict"] == "pending"]
         console.print(f"[red]pending verdicts:[/red] {', '.join(pending)}")
+        raise SystemExit(1)
+
+
+
+@cli.command("sfx-build")
+@click.argument("concept_file", type=click.Path(exists=True))
+@click.option("--dry-run", is_flag=True,
+              help="List what would be generated and what it costs. Sends nothing.")
+def sfx_build(concept_file: str, dry_run: bool):
+    """Generate the sound effects a concept's events call for, and cache them.
+
+    Reads outputs/renders/<slug>_events.json, so render first. Sounds are cached
+    by prompt under assets/audio/sfx/generated/, and two events of the same type
+    and intensity share one file — a 40-impact chain is not 40 generations.
+    """
+    from pipeline.audio_assets import load_catalog, load_sim_events
+    from pipeline.planner import load_concept, normalize_concept
+    from pipeline.sfx_library import ELEVENLABS_USD_PER_MINUTE, generate
+
+    concept = normalize_concept(load_concept(Path(concept_file)))
+    slug = concept.get("slug", "render")
+    events = load_sim_events(slug, Path("outputs/renders"))
+    if not events:
+        console.print(f"[yellow]No events for {slug}.[/yellow] "
+                      f"Run `render` first — outputs/renders/{slug}_events.json is missing.")
+        return
+
+    sounds = required_sounds_for(load_catalog(), events)
+    missing = [s for s in sounds if not s["cached"]]
+    seconds = sum(float(s["spec"]["duration"]) for s in missing)
+    console.print(
+        f"{len(events)} events · {len(sounds)} distinct sounds · "
+        f"{len(sounds) - len(missing)} cached · {len(missing)} to generate "
+        f"({seconds:.1f}s, ~${seconds / 60 * ELEVENLABS_USD_PER_MINUTE:.2f})"
+    )
+    for sound in sounds:
+        spec = sound["spec"]
+        mark = "[green]cached[/green]" if sound["cached"] else "[yellow]new[/yellow]"
+        console.print(f"  {mark} {spec['type']}/{spec['bucket']} v{sound['variant']} "
+                      f"· {spec['duration']}s · {sound['events']} events")
+
+    if dry_run:
+        console.print("[cyan]dry run — nothing sent.[/cyan]")
+        return
+
+    made = 0
+    for sound in missing:
+        if generate(sound["spec"], sound["variant"]) is not None:
+            made += 1
+    console.print(f"[green]Generated {made}/{len(missing)}[/green] "
+                  f"into assets/audio/sfx/generated/")
+
+
+def required_sounds_for(catalog, events):
+    from pipeline.sfx_library import required_sounds
+    return required_sounds(catalog, events)
+
+
+@cli.command("sfx-report")
+@click.argument("concept_files", type=click.Path(exists=True), nargs=-1)
+@click.option("--output", default="docs/sfx/README.md", show_default=True,
+              help="Human-readable view. Generated — do not edit.")
+@click.option("--data-dir", default="outputs/sfx", show_default=True,
+              help="Where to write sfx.json / sfx.csv.")
+@click.option("--check", is_flag=True,
+              help="Exit non-zero if a concept has events but no sound resolves for them.")
+def sfx_report(concept_files, output, data_dir, check):
+    """Measure how well each concept's sound lands on its picture.
+
+    With no arguments, reports on every concept that has been rendered. The
+    point is comparison: a Blender concept's events come from the same bake it
+    rendered, so its timing error is zero by construction, and that is the
+    baseline the generated path is judged against.
+    """
+    from pipeline.config import load_settings
+    from pipeline.planner import load_concept, normalize_concept
+    from pipeline.report import write_csv, write_json
+    from pipeline.sfx_report import CSV_FIELDS, collect_concept, csv_rows, summarise
+    from pipeline.templating import load_video_template, render_template
+
+    renders_dir, final_dir = Path("outputs/renders"), Path("outputs/final")
+    paths = [Path(p) for p in concept_files]
+    if not paths:
+        paths = [p for p in sorted(Path("concepts").rglob("*.yaml"))
+                 if (renders_dir / f"{(load_concept(p) or {}).get('slug', p.stem)}.mp4").is_file()]
+    if not paths:
+        console.print("[yellow]Nothing rendered yet.[/yellow] Run `render` first.")
+        return
+
+    settings = load_settings()
+    rows = []
+    for path in paths:
+        concept = normalize_concept(load_concept(path))
+        template = load_video_template(concept["video_template"])
+        row = collect_concept(concept, template, settings, renders_dir, final_dir)
+        row["path"] = path.as_posix()
+        row["title"] = concept.get("title") or row["slug"]
+        rows.append(row)
+    rows.sort(key=lambda r: (-r["onset_delta_median_ms"], r["slug"]))
+
+    totals = summarise(rows)
+    record = {"entries": rows, "totals": totals}
+    d = Path(data_dir)
+    write_json(d / "sfx.json", record)
+    write_csv(d / "sfx.csv", csv_rows(rows), CSV_FIELDS)
+    console.print(f"[green]Wrote[/green] {d / 'sfx.json'}, {d / 'sfx.csv'}")
+
+    out = Path(output)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    out.write_text(render_template("docs", "sfx", record), encoding="utf-8")
+    console.print(f"[green]Wrote[/green] {out}")
+
+    console.print(
+        f"{totals['concepts']} concepts · {totals['events']} events · "
+        f"{totals['cues']} cues · onset delta median "
+        f"{totals['onset_delta_median_ms']}ms · "
+        f"voiced {totals['generated_ratio'] * 100:.0f}%"
+    )
+    # A concept with no events at all is not a fault — a pendulum has nothing to
+    # hit. Events with no cue is: something was meant to be heard and is not.
+    silent = [r["slug"] for r in rows if r["events"] and not r["cues"]]
+    for slug in silent:
+        console.print(f"  [red]silent[/red] {slug}: has events but no sound resolves for them")
+
+    if check and silent:
         raise SystemExit(1)
 
 
