@@ -362,7 +362,7 @@ def sfx_build(concept_file: str, dry_run: bool):
     """
     from pipeline.audio_assets import load_catalog, load_sim_events
     from pipeline.planner import load_concept, normalize_concept
-    from pipeline.sfx_library import ELEVENLABS_USD_PER_MINUTE, generate
+    from pipeline.sfx_library import ELEVENLABS_USD_PER_MINUTE, generate, required_sounds
 
     concept = normalize_concept(load_concept(Path(concept_file)))
     slug = concept.get("slug", "render")
@@ -372,7 +372,7 @@ def sfx_build(concept_file: str, dry_run: bool):
                       f"Run `render` first — outputs/renders/{slug}_events.json is missing.")
         return
 
-    sounds = required_sounds_for(load_catalog(), events)
+    sounds = required_sounds(load_catalog(), events)
     missing = [s for s in sounds if not s["cached"]]
     seconds = sum(float(s["spec"]["duration"]) for s in missing)
     console.print(
@@ -397,10 +397,6 @@ def sfx_build(concept_file: str, dry_run: bool):
     console.print(f"[green]Generated {made}/{len(missing)}[/green] "
                   f"into assets/audio/sfx/generated/")
 
-
-def required_sounds_for(catalog, events):
-    from pipeline.sfx_library import required_sounds
-    return required_sounds(catalog, events)
 
 
 @cli.command("sfx-report")

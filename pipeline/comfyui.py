@@ -78,14 +78,15 @@ def get_comfy_cmd() -> list[str]:
 def _as_set_args(overrides: dict[str, object]) -> list[str]:
     """``{"10.duration": 5}`` -> ``["--set", "10.duration=5"]``.
 
-    Values go through ``json.dumps`` because comfy_run parses each value as JSON
-    first and falls back to a plain string. Without this a prompt containing a
-    digit-only line, or a boolean, would arrive as the wrong type.
+    Every value goes through ``json.dumps``, strings included. comfy_run parses
+    each value as JSON first and only falls back to a plain string, so an
+    unquoted prompt that happens to read as JSON — a bare number, ``true``, or
+    anything starting with a bracket — would otherwise arrive as the wrong type.
+    Quoting it makes the round trip exact.
     """
     args: list[str] = []
     for key, value in overrides.items():
-        encoded = value if isinstance(value, str) else json.dumps(value, ensure_ascii=False)
-        args += ["--set", f"{key}={encoded}"]
+        args += ["--set", f"{key}={json.dumps(value, ensure_ascii=False)}"]
     return args
 
 

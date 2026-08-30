@@ -132,8 +132,12 @@ def library_sounds(role: str) -> list[Path]:
     return sorted(p for p in directory.iterdir() if p.suffix.lower() in AUDIO_SUFFIXES)
 
 
-def _record_index(spec: dict, variant: int, path: Path) -> None:
-    """Note what each generated file was made from, so the cache is inspectable."""
+def _record_index(spec: dict, variant: int, path: Path, stub: bool = False) -> None:
+    """Note what each cached file was made from, so the cache is inspectable.
+
+    Stub tones are recorded too, and marked: a cache full of placeholders looks
+    identical to a cache full of real sounds until you read this.
+    """
     GENERATED_DIR.mkdir(parents=True, exist_ok=True)
     try:
         index = json.loads(INDEX_PATH.read_text(encoding="utf-8"))
@@ -141,7 +145,7 @@ def _record_index(spec: dict, variant: int, path: Path) -> None:
         index = {}
     index[path.name] = {
         "type": spec["type"], "bucket": spec["bucket"], "variant": variant,
-        "prompt": spec["prompt"], "duration": spec["duration"],
+        "prompt": spec["prompt"], "duration": spec["duration"], "stub": stub,
     }
     INDEX_PATH.write_text(json.dumps(index, ensure_ascii=False, indent=2), encoding="utf-8")
 
@@ -166,6 +170,7 @@ def generate(spec: dict, variant: int = 0, dry_run: bool | None = None) -> Path 
         # that reads it back, stay exercisable with only ffmpeg installed.
         freq = {"soft": 880, "mid": 520, "hard": 240}.get(spec["bucket"], 440)
         comfyui.stub_tone(target, min(1.5, float(spec["duration"])), freq=freq)
+        _record_index(spec, variant, target, stub=True)
         return target
 
     from simulators.comfyui import resolve_overrides
