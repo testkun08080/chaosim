@@ -23,6 +23,7 @@ from pathlib import Path
 
 from pipeline import comfyui
 from pipeline.compositor import concat_segments
+from pipeline.config import load_settings
 from pipeline.ffmpeg_utils import get_duration
 from pipeline.sfx_events import cue_sheet_events, detect_onsets, snap_to_onsets, write_events
 from simulators.comfyui import AVAILABLE_RECIPES, resolve_overrides
@@ -64,7 +65,7 @@ def estimate(concept: dict) -> dict:
     rather than guessed at.
     """
     module = load_recipe(recipe_name(concept))
-    jobs = module.build_jobs(concept, concept.get("params") or {})
+    jobs = module.build_jobs(concept, concept.get("params") or {}, load_settings())
     per_second = {"480P": 0.05, "720P": 0.10, "1080P": 0.15}
     seconds = 0.0
     usd = 0.0
@@ -94,7 +95,7 @@ def render_via_comfyui(concept: dict, output_dir: Path, dry_run: bool | None = N
     out_path = output_dir / f"{slug}.mp4"
 
     module = load_recipe(recipe_name(concept))
-    jobs = module.build_jobs(concept, concept.get("params") or {})
+    jobs = module.build_jobs(concept, concept.get("params") or {}, load_settings())
     if not jobs:
         raise ValueError(
             f"{slug}: source is comfyui but no shots are declared "
@@ -165,7 +166,7 @@ def apply_look_assets(concept: dict, dry_run: bool | None = None) -> dict:
     concept still renders (with a placeholder backplate) under ``CHAOSIM_STUB=1``.
     """
     module = load_recipe(recipe_name(concept))
-    jobs = module.build_jobs(concept, concept.get("params") or {})
+    jobs = module.build_jobs(concept, concept.get("params") or {}, load_settings())
     if not jobs:
         return concept
     if not hasattr(module, "apply_assets"):

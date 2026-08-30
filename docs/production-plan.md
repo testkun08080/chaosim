@@ -10,6 +10,10 @@ Kawaken_3DCG / Kintsugi_3DCG のような 3DCG 物理シミュレーション系
 - **効果音の設計:** [docs/sfx-design.md](./sfx-design.md)（本ガイドの Phase 3 の中身）
 - **横断的な設計原則（他プロジェクト流用版）:** [docs/media-pipeline-playbook.md](./media-pipeline-playbook.md)
 
+> **`source: comfyui` の場合**: フェーズとゲートはそのまま使えるが、
+> 「安く試す」の中身が違う（Blender はサンプル数と解像度、ComfyUI は解像度と尺とカット数）。
+> 読み替えは [comfyui-pipeline.md](./comfyui-pipeline.md) 第6章にまとめてある。
+
 > このガイドは 2 部構成。**第 I 部**が環境構築と日々の運用（旧 workflow.md）、
 > **第 II 部**がフェーズ・ゲート制の制作計画。初めての1本は第 II 部のフェーズ順で回し、
 > 量産に入ってから第 I 部の全自動パターンに移る。
@@ -211,17 +215,27 @@ python scripts/chaosim.py plan --topic "colorful domino" --local
 | フィールド | 企画上の意味 |
 |---|---|
 | `hook` | 最初の3秒で何が起きるか（離脱を防ぐ核） |
-| `scene_script` | 使うシミュレーター（`simulators/blender/scenes/*.py` に存在必須） |
+| `source` | 映像の作り方（`blender` 既定 / `comfyui` / `hybrid`） |
+| `scene_script` | 使うシミュレーター（`blender` / `hybrid` のみ。実在必須） |
 | `duration_sec` | 尺（Shorts は 59 秒以下、まずは 6〜15 秒を推奨） |
 | `viral_angle` | バズ仮説（参考チャンネルのどの型に寄せるか） |
-| `params` | シーンに渡す物理パラメータ |
+| `params` | シーンに渡す物理パラメータ（`blender` / `hybrid` のみ） |
+| `comfyui` | カット割りとキューシート（`comfyui` / `hybrid` のみ） |
+
+**どの `source` にするかは、視聴者が検証できるかどうかで決める。**
+面数比較やドミノの枚数のように画面上で数えられる題材は生成に向かない（嘘が効かない）。
+砂・破砕・流体のように「それらしさ」で成立する題材は生成が強い。
+シミュは通っていて画だけが弱い企画は `hybrid`。シミュを捨てると
+正確な衝突タイミング＝効果音の当て先まで一緒に失うので、素材だけ生成する。
 
 **ゲート 0 → 1（企画レビュー）**
 
 - [ ] `hook` が一文で言える（「壁が消えた瞬間に崩れる」等）
-- [ ] `scene_script` が実在する（`python scripts/chaosim.py list-concepts` で確認）
+- [ ] `scene_script`（または `comfyui.recipe`）が実在する
+      → `python scripts/chaosim.py catalog --check` が error 0
 - [ ] 尺と縦横比（9:16）が決まっている
 - [ ] 参考チャンネルの類似構成が1つ言える（差別化ポイントも）
+- [ ] `source: comfyui` なら cue を書いた（無いと絵は出るが完全に無音）
 
 ---
 
@@ -261,6 +275,23 @@ python scripts/chaosim.py render concepts/generated/<slug>.yaml --preset preview
 >
 > 実装は `bake_sfx_events.py` と同じく Blender をバックグラウンド起動し、
 > `setup_scene`→`run_simulation` の後に指定フレームだけ `bpy.ops.render.render(write_still=True)`。
+
+### 1-b'. ComfyUI 経路のスライス
+
+`source: comfyui` に Blender の「サンプル数を下げる」に当たる操作は無い。
+安くする軸は**解像度・尺・カット数**の3つで、スライスは
+**480P / 5秒 / 1カットだけ**にあたる。
+
+```bash
+# 何カット・何秒・いくらか。送信しない
+python scripts/chaosim.py render concepts/comfyui/<slug>.yaml --dry-run
+
+# 1カットだけ回す（concept に comfyui.max_shots: 1 を一時的に足す）
+python scripts/chaosim.py render concepts/comfyui/<slug>.yaml
+```
+
+ゲートの5項目はそのまま使える。`sim`（シミュが破綻していない）は
+生成経路では「動きが企画どおりか・カメラが勝手に動いていないか」と読む。
 
 ### 1-c. 効果音の同時ベイク（任意・早期確認）
 

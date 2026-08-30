@@ -37,28 +37,36 @@ def quantize_duration(seconds: float) -> int:
     return min(ALLOWED_DURATIONS, key=lambda allowed: (abs(allowed - wanted), allowed))
 
 
-def plan_shots(concept: dict) -> list[dict]:
+def plan_shots(concept: dict, settings: dict | None = None) -> list[dict]:
     """Normalise ``concept["comfyui"]["shots"]`` into the shot list we render.
 
     Also the single source of truth for shot names and durations, so the cue
     sheet in ``pipeline.sfx_events`` lands on the same timeline the clips do.
+
+    ``config/settings.yaml`` supplies the cheap defaults and the ceiling on how
+    many shots one concept may run; the concept can go under them but the
+    ceiling always wins, so a runaway YAML cannot spend without an edit there.
     """
     cfg = concept.get("comfyui") or {}
-    resolution = str(cfg.get("resolution") or DEFAULT_RESOLUTION)
+    limits = (settings or {}).get("comfyui") or {}
+    resolution = str(cfg.get("resolution") or limits.get("resolution") or DEFAULT_RESOLUTION)
+    default_duration = limits.get("shot_duration_sec") or DEFAULT_DURATION
+    default_size = cfg.get("keyframe_size") or limits.get("keyframe_size") or DEFAULT_KEYFRAME_SIZE
     base_seed = int(cfg.get("seed") or 0)
-    max_shots = int(cfg.get("max_shots") or 0)
+    ceiling = int(limits.get("max_shots") or 0)
+    asked = int(cfg.get("max_shots") or 0)
+    max_shots = min(x for x in (ceiling, asked) if x > 0) if (ceiling or asked) else 0
 
     shots: list[dict] = []
     for index, raw in enumerate(cfg.get("shots") or [], start=1):
-        duration = quantize_duration(raw.get("duration", DEFAULT_DURATION))
+        duration = quantize_duration(raw.get("duration", default_duration))
         shots.append({
             "name": str(raw.get("name") or f"shot_{index:02d}"),
             "index": index,
             "duration": duration,
             "keyframe_prompt": str(raw.get("keyframe_prompt") or raw.get("prompt") or ""),
             "keyframe_negative": str(raw.get("keyframe_negative") or DEFAULT_KEYFRAME_NEGATIVE),
-            "keyframe_size": str(raw.get("keyframe_size") or cfg.get("keyframe_size")
-                                 or DEFAULT_KEYFRAME_SIZE),
+            "keyframe_size": str(raw.get("keyframe_size") or default_size),
             "prompt": str(raw.get("prompt") or ""),
             "negative_prompt": str(raw.get("negative_prompt") or DEFAULT_MOTION_NEGATIVE),
             "resolution": str(raw.get("resolution") or resolution),
@@ -71,7 +79,8 @@ def plan_shots(concept: dict) -> list[dict]:
     return shots
 
 
-def build_jobs(concept: dict, params: dict | None = None) -> list[dict]:
+def build_jobs(concept: dict, params: dict | None = None,
+               settings: dict | None = None) -> list[dict]:
     """One ComfyUI job per shot.
 
     ``video_with_audio`` is picked for a shot that asks the model to generate
@@ -81,7 +90,7 @@ def build_jobs(concept: dict, params: dict | None = None) -> list[dict]:
     """
     slug = concept.get("slug", "render")
     jobs: list[dict] = []
-    for shot in plan_shots(concept):
+    for shot in plan_shots(concept, settings):
         name = shot["name"]
         if shot["generate_audio"]:
             workflow = "08_video/video_with_audio.json"

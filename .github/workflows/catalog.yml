@@ -3,11 +3,14 @@ name: catalog
 # Regenerate docs/catalog/README.md — the concept x scene health check.
 #
 # No Blender, no render: this is a static cross-check of concepts/**/*.yaml
-# against simulators/blender/scenes/*.py, so it runs in seconds. It catches the
-# class of problem that otherwise only shows up after a ~40-minute preview
-# render: a scene_script that does not exist, or params that are declared in
-# YAML but never reach the code (runner.py does not pass params into
-# run_simulation(), so those values silently do nothing).
+# against the code each concept names — simulators/blender/scenes/*.py for a
+# Blender concept, simulators/comfyui/recipes/*.py for a generated one — so it
+# runs in seconds. It catches the class of problem that otherwise only shows up
+# after a ~40-minute preview render, or after paying for a generation:
+# a scene_script or recipe that does not exist, params declared in YAML that
+# never reach the code (runner.py does not pass params into run_simulation(),
+# so those values silently do nothing), and — for a generated concept — a cut
+# with no cues, which renders a fine-looking video with no sound at all.
 
 on:
   push:
@@ -16,6 +19,7 @@ on:
       - 'concepts/**'
       - 'simulators/blender/scenes/**'
       - 'simulators/blender/runner.py'
+      - 'simulators/comfyui/**'
       - 'pipeline/catalog.py'
       - 'templates/docs/**'
       - '.github/workflows/catalog.yml'
@@ -24,6 +28,7 @@ on:
       - 'concepts/**'
       - 'simulators/blender/scenes/**'
       - 'simulators/blender/runner.py'
+      - 'simulators/comfyui/**'
       - 'pipeline/catalog.py'
       - 'templates/docs/**'
   workflow_dispatch:

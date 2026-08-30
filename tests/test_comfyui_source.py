@@ -89,6 +89,31 @@ class GenerativeShotsTests(unittest.TestCase):
 
         self.assertEqual(len(generative_shots.build_jobs(concept)), 1)
 
+    def test_the_settings_ceiling_wins_over_a_concept_asking_for_more(self):
+        concept = {"slug": "s", "comfyui": {"max_shots": 5,
+                                            "shots": [{"prompt": str(i)} for i in range(5)]}}
+
+        jobs = generative_shots.build_jobs(concept, None, {"comfyui": {"max_shots": 2}})
+
+        self.assertEqual(len(jobs), 2)
+
+    def test_a_concept_may_go_under_the_ceiling(self):
+        concept = {"slug": "s", "comfyui": {"max_shots": 1,
+                                            "shots": [{"prompt": str(i)} for i in range(5)]}}
+
+        jobs = generative_shots.build_jobs(concept, None, {"comfyui": {"max_shots": 4}})
+
+        self.assertEqual(len(jobs), 1)
+
+    def test_settings_supply_the_cheap_defaults(self):
+        concept = {"slug": "s", "comfyui": {"shots": [{"prompt": "a"}]}}
+
+        shot = generative_shots.plan_shots(
+            concept, {"comfyui": {"resolution": "720P", "shot_duration_sec": 10}})[0]
+
+        self.assertEqual(shot["resolution"], "720P")
+        self.assertEqual(shot["duration"], 10)
+
 
 class LookAssetsTests(unittest.TestCase):
     def test_assets_without_a_param_are_skipped(self):

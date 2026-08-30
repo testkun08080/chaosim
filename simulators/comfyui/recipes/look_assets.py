@@ -52,7 +52,8 @@ def plan_assets(concept: dict) -> list[dict]:
     return assets
 
 
-def build_jobs(concept: dict, params: dict | None = None) -> list[dict]:
+def build_jobs(concept: dict, params: dict | None = None,
+               settings: dict | None = None) -> list[dict]:
     """One image-generation job per declared asset."""
     slug = concept.get("slug", "render")
     return [
