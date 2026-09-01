@@ -45,6 +45,15 @@ voicevox:
 narration:
   estimate_sec_per_char: 0.18  # used to size the silent stub when VOICEVOX is down
 
+comfyui:
+  # Cost guards for `source: comfyui`. Video generation is an order of magnitude
+  # more expensive than image generation, so the defaults sit at the bottom of
+  # every axis and a concept has to ask to go higher.
+  resolution: "480P"        # 480P / 720P / 1080P — roughly $0.05/$0.10/$0.15 per second
+  shot_duration_sec: 5      # the model accepts 5, 10 or 15 only
+  max_shots: 6              # ceiling per concept, so one YAML cannot run away
+  keyframe_size: "768x1344" # closest Recraft V4 size to 9:16
+
 compositing:
   bgm_volume: 0.18
   narration_volume: 1.0

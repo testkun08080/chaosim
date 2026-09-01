@@ -1,0 +1,52 @@
+# 効果音の判定記録。
+#
+# `chaosim.py sfx-report` がこれを読むわけではない（あちらは実測値だけを出す）。
+# ここに書くのは、その数値を見て人が下した判断。数値はいつでも再生成できるが、
+# なぜ不合格にしたかは再生成できない。docs/gate1/verdicts.yaml と同じ思想。
+#
+# verdict:
+#   pass    音が絵に合っている。このまま出せる
+#   hold    条件付き。cue を数点直せば通る見込み
+#   rework  音の設計から作り直す（cue の置き方・音源の選び方）
+#   fail    タイミングが根本的に合っていない
+#   pending 未判定（この行が無い slug は自動で pending 扱い）
+#
+# 見るところ（docs/sfx/README.md の列と対応）:
+#   timing   衝突の瞬間に音が来ているか（onset ズレと実測率）
+#   source   音源が企画に合っているか（汎用音の使い回しになっていないか）
+#   dynamics 大小の差が付いているか（intensity が効いているか）
+#   density  団子になっていないか（同時発音）
+#   loudness -14 LUFS 付近に着地しているか
+# true=通過 / false=不通過 / null=この条件では判断保留
+
+# =====================================================================
+# まだ実音での判定をしていない。
+#
+# 現状 5本とも CHAOSIM_STUB=1 で配線を通しただけで、映像は testsrc2、
+# 効果音は減衰サイン波。だから onset ズレ 0ms も「合っている」ではなく
+# 「スタブ映像にオンセットが無いので誰もスナップしていない」という意味。
+#
+# 実 API で 1本（480P / 5秒 / 1カット）を回してから、ここを埋める。
+# =====================================================================
+
+sand_avalanche_asmr_comfy:
+  verdict: pending
+  gate: {timing: null, source: null, dynamics: null, density: null, loudness: null}
+  note: >
+    スタブでの配線確認のみ。7 cue が全部ミックスに乗り、
+    ポリフォニー制限にも掛かっていない（同時発音 1）。
+    実測すべきは砂の崩落開始が cue の t=0.9 と合うかどうか。
+
+glass_fracture_wall_comfy:
+  verdict: pending
+  gate: {timing: null, source: null, dynamics: null, density: null, loudness: null}
+  note: >
+    9 cue。衝突→亀裂→落下と 0.3〜1.2 秒間隔で続くので、
+    この企画がポリフォニー制限（40ms）の効きを一番よく確かめられる。
+
+press_crush_showdown_comfy:
+  verdict: pending
+  gate: {timing: null, source: null, dynamics: null, density: null, loudness: null}
+  note: >
+    8 cue。プレスは等速なので、生成映像でも等速に降りているかを
+    onset の間隔で確かめられる。加速していたら cue の等間隔と食い違うはず。

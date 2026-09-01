@@ -1,4 +1,4 @@
-.PHONY: install plan render material narrate compose thumbnail run upload clean voicevox-up preview-run sample-run
+.PHONY: install plan render material narrate compose thumbnail run upload clean voicevox-up preview-run sample-run sfx-build sfx-report comfy-dry-run
 
 install:
 	pip install -r requirements.txt
@@ -26,6 +26,20 @@ run:
 
 upload:
 	python scripts/chaosim.py upload $(VIDEO)
+
+# Generate and cache the sound effects a concept's events call for.
+# Run `render` first — this reads outputs/renders/<slug>_events.json.
+sfx-build:
+	python scripts/chaosim.py sfx-build $(CONCEPT)
+
+# Measure how well the sound lands on the picture -> docs/sfx/README.md.
+sfx-report:
+	python scripts/chaosim.py sfx-report
+
+# Price a ComfyUI render before sending anything.
+comfy-dry-run:
+	python scripts/chaosim.py render $(CONCEPT) --dry-run
+	python scripts/chaosim.py sfx-build $(CONCEPT) --dry-run
 
 clean:
 	rm -rf outputs/renders/* outputs/material/* outputs/audio/* outputs/work/* outputs/final/* outputs/uploads/*

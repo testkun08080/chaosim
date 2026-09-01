@@ -1,13 +1,27 @@
-"""Resolve BGM (local assets) and SFX (macOS system sounds) for compose."""
+"""Resolve BGM and SFX for compose, and time the cues onto the timeline.
+
+Sound *files* are chosen in :mod:`pipeline.sfx_library` (shipped -> generated ->
+macOS system sound). This module decides *when* each one fires and how loud,
+which is where ``docs/sfx-design.md`` says the satisfying-ness actually lives:
+
+* an event's ``intensity`` picks the variant and sets the volume, so a glancing
+  hit and a wall collapsing are no longer the same sound at the same level;
+* events closer together than the ear can separate are thinned, because a
+  hundred overlapping one-shots read as mud, not as a hundred impacts;
+* each hit is pitched a few percent off so a chain stops sounding like one
+  sample fired on a timer.
+"""
 
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 import yaml
 
 from pipeline.ffmpeg_utils import get_duration
+from pipeline import sfx_library
 
 AUDIO_ROOT = Path("assets/audio")
 CATALOG_PATH = AUDIO_ROOT / "catalog.yaml"
@@ -19,6 +33,19 @@ _ANCHOR_ALIASES = {
     "sim_start": "sim",
     "outro_start": "outro",
 }
+
+# Two impacts closer than this are heard as one, so firing both only muddies
+# the attack of the first. Blender bakes can emit dozens inside a single frame.
+POLYPHONY_MIN_GAP_SEC = 0.04
+
+# How far each hit is detuned, as a fraction of the sample rate. Small enough to
+# read as the same object struck twice, large enough to break the machine-gun.
+PITCH_JITTER = 0.06
+
+# intensity 0-1 -> a multiplier on the base SFX volume. The floor keeps a very
+# light event audible; the ceiling keeps a heavy one from clipping the mix.
+VOLUME_FLOOR = 0.35
+VOLUME_CEILING = 1.15
 
 
 def load_catalog(path: Path | None = None) -> dict:
@@ -79,7 +106,29 @@ def resolve_bgm(concept: dict, video_template: dict | None = None,
             candidate = AUDIO_ROOT / rel
             if candidate.exists():
                 return candidate
-    return None
+
+    return resolve_generated_bgm(concept, catalog, default_mood)
+
+
+def resolve_generated_bgm(concept: dict, catalog: dict, default_mood: str) -> Path | None:
+    """Fall back to generated music when no BGM file matches the mood.
+
+    Same cache-by-prompt rule as the sound effects, so a mood is paid for once
+    across every concept that asks for it.
+    """
+    prompts = catalog.get("bgm_prompts") or {}
+    if not prompts:
+        return None
+
+    mood = str(concept.get("music_mood") or "").lower()
+    key = next((k for k in prompts if k.lower() in mood), None) or default_mood
+    prompt = prompts.get(key) or prompts.get("ambient")
+    if not prompt:
+        return None
+
+    duration = int(float(concept.get("duration_sec") or 30) + 10)
+    return sfx_library.generate_music(prompt, duration, name=key,
+                                      generate_missing=should_generate())
 
 
 def resolve_sfx_path(sound_name: str, settings: dict | None = None,
@@ -161,20 +210,104 @@ def resolve_sfx_cues(concept: dict, video_template: dict, base_segments: list[di
         cues.append({"path": path, "start": round(anchors[role], 3), "volume": vol})
 
     if sfx_cfg.get("scene_events", True) and sim_events:
-        event_sound = sfx_cfg.get("scene_event_sound") or "Tink"
-        path = resolve_sfx_path(event_sound, settings, catalog)
-        sim_start = anchors.get("sim", 0.0)
-        if path:
-            n = max(1, len(sim_events))
-            for i, ev in enumerate(sim_events):
-                t = float(ev.get("t", 0.0))
-                # Mild fade across the chain so the end isn't louder than the start.
-                fade = 1.0 - 0.35 * (i / max(1, n - 1))
-                cues.append({
-                    "path": path,
-                    "start": round(sim_start + t, 3),
-                    "volume": round(base_vol * 0.75 * fade, 3),
-                })
+        cues += resolve_event_cues(
+            sim_events, anchors.get("sim", 0.0), base_vol,
+            catalog=catalog, settings=settings,
+            fallback_sound=sfx_cfg.get("scene_event_sound") or "Tink",
+            generate_missing=should_generate(sfx_cfg),
+        )
 
     cues.sort(key=lambda c: c["start"])
+    return cues
+
+
+def should_generate(sfx_cfg: dict | None = None) -> bool:
+    """Whether compose may generate a missing sound rather than skip it.
+
+    Generation costs money, and a compose that quietly bills for forty one-shots
+    is a bad surprise — so the paid path is opt-in (``CHAOSIM_SFX_GENERATE=1``,
+    or ``sfx.generate`` in the video template) and ``sfx-build`` is the explicit
+    place to spend. The exception is when there is no sandbox to bill: then
+    "generating" writes a free placeholder tone, and filling the cache keeps the
+    mix audible in CI and on a machine with no macOS system sounds.
+    """
+    from pipeline import comfyui
+
+    if os.environ.get("CHAOSIM_SFX_GENERATE", "").lower() in ("1", "true", "yes"):
+        return True
+    if (sfx_cfg or {}).get("generate"):
+        return True
+    return not comfyui.comfyui_available()
+
+
+def thin_events(events: list[dict], min_gap: float = POLYPHONY_MIN_GAP_SEC) -> list[dict]:
+    """Drop events too close to the previous one to be heard separately.
+
+    Keeps the loudest of a cluster rather than the first: when a stack settles,
+    the hit that carries the moment is not necessarily the earliest one.
+    """
+    ordered = sorted(events, key=lambda e: float(e.get("t", 0.0)))
+    kept: list[dict] = []
+    for event in ordered:
+        t = float(event.get("t", 0.0))
+        if kept and t - float(kept[-1].get("t", 0.0)) < min_gap:
+            if float(event.get("intensity", 0.6)) > float(kept[-1].get("intensity", 0.6)):
+                kept[-1] = event
+            continue
+        kept.append(event)
+    return kept
+
+
+def _pitch_for(index: int) -> float:
+    """A deterministic detune per hit, cycling through five offsets.
+
+    Deterministic on purpose: the same concept must mix to the same audio twice,
+    or a re-render becomes a different video and the SFX report stops comparing
+    like with like.
+    """
+    offsets = (0.0, PITCH_JITTER, -PITCH_JITTER * 0.6,
+               PITCH_JITTER * 0.5, -PITCH_JITTER)
+    return round(1.0 + offsets[index % len(offsets)], 4)
+
+
+def resolve_event_cues(sim_events: list[dict], sim_start: float, base_vol: float,
+                       catalog: dict | None = None, settings: dict | None = None,
+                       fallback_sound: str = "Tink",
+                       generate_missing: bool = False) -> list[dict]:
+    """Turn typed simulation events into timed, graded, varied cues."""
+    catalog = catalog or load_catalog()
+    events = thin_events(sim_events)
+    fallback = resolve_sfx_path(fallback_sound, settings, catalog)
+
+    occurrences: dict[str, int] = {}
+    cues: list[dict] = []
+    for index, event in enumerate(events):
+        event_type = str(event.get("type") or "impact")
+        intensity = event.get("intensity", 0.6)
+        occurrence = occurrences.get(event_type, 0)
+        occurrences[event_type] = occurrence + 1
+
+        path, origin = sfx_library.resolve_event_sound(
+            catalog, event_type, intensity, occurrence=occurrence,
+            generate_missing=generate_missing,
+        )
+        if path is None:
+            path, origin = fallback, ("system" if fallback else "none")
+        if path is None:
+            continue
+
+        try:
+            scaled = float(intensity)
+        except (TypeError, ValueError):
+            scaled = 0.6
+        gain = VOLUME_FLOOR + (VOLUME_CEILING - VOLUME_FLOOR) * min(1.0, max(0.0, scaled))
+        cues.append({
+            "path": path,
+            "start": round(sim_start + float(event.get("t", 0.0)), 3),
+            "volume": round(base_vol * gain, 3),
+            "pitch": _pitch_for(index),
+            "type": event_type,
+            "intensity": round(scaled, 3),
+            "origin": origin,
+        })
     return cues

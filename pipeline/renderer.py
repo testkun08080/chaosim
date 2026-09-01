@@ -1,4 +1,14 @@
-"""Blender render orchestration (with an ffmpeg placeholder fallback)."""
+"""Render orchestration: pick a backend, produce footage + an events sidecar.
+
+``concept["source"]`` selects the backend:
+
+* ``blender`` (default) — physics simulation, the original path.
+* ``comfyui``           — footage generated from prompts (``comfyui_render``).
+* ``hybrid``            — ComfyUI makes the look assets, Blender still simulates.
+
+All three end at the same two files, ``outputs/renders/<slug>.mp4`` and
+``<slug>_events.json``, so nothing downstream branches on the backend.
+"""
 
 import json
 import os
@@ -34,17 +44,42 @@ def blender_available() -> bool:
     return shutil.which(blender) is not None or os.path.isfile(blender)
 
 
-def render_concept(concept: dict, concept_path: Path, output_dir: Path,
-                   preset: str | None = None) -> Path:
-    """Run Blender headlessly to render a concept. Returns output video path.
+SOURCES = ("blender", "comfyui", "hybrid")
 
-    Falls back to an ffmpeg-generated placeholder clip when Blender is not
-    installed (or CHAOSIM_STUB=1), so the rest of the pipeline stays testable.
+
+def concept_source(concept: dict) -> str:
+    """Which render backend a concept asks for. Unknown values fail loudly."""
+    source = str(concept.get("source") or "blender").lower()
+    if source not in SOURCES:
+        raise ValueError(
+            f"unknown source {source!r} in concept "
+            f"{concept.get('slug', '?')} (choose from: {', '.join(SOURCES)})"
+        )
+    return source
+
+
+def render_concept(concept: dict, concept_path: Path, output_dir: Path,
+                   preset: str | None = None, dry_run: bool = False) -> Path:
+    """Render a concept with its declared backend. Returns the output video path.
+
+    Falls back to an ffmpeg-generated placeholder clip when the backend's tool
+    is not installed (or CHAOSIM_STUB=1), so the rest of the pipeline stays
+    testable.
 
     Branding stills (``params.still`` / ``duration_sec <= 0``) write a PNG
     instead of an MP4.
     """
+    output_dir = Path(output_dir)
     output_dir.mkdir(parents=True, exist_ok=True)
+
+    source = concept_source(concept)
+    if source != "blender":
+        # Imported here so the Blender path never pays for the ComfyUI stack.
+        from pipeline import comfyui_render
+        if source == "comfyui":
+            return comfyui_render.render_via_comfyui(concept, output_dir, dry_run=dry_run)
+        concept = comfyui_render.apply_look_assets(concept, dry_run=dry_run)
+
     slug = concept.get("slug", "render")
     params = concept.get("params") or {}
     still = bool(params.get("still")) or float(concept.get("duration_sec") or 0) <= 0

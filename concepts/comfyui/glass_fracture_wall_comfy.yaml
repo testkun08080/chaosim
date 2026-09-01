@@ -1,0 +1,74 @@
+title: "Glass Wall Shatter — ComfyUI"
+slug: glass_fracture_wall_comfy
+source: comfyui
+duration_sec: 15
+description: >
+  ガラス板に球が当たり、亀裂が一点から外へ走り、破片が落ちて散る。
+  Blender 版 glass_fracture_wall (concepts/generated/) と同じ企画の生成版。
+hook: "1カット目の1秒手前、まだ無傷のガラスに球が入ってくる"
+viral_angle: >
+  破壊・破砕は満足系シミュレーションの最上位ブラケット。生成に回す判断は
+  Blender 版の gate1 verdict による。あちらは (1) 発射体がカメラの真上に湧く
+  (2) crack_speed が速すぎて亀裂が走る画にならない (3) 32サンプルでは
+  transmission 0.85 のガラスが黒に沈む、の3つが重なって全項目 false だった。
+  どれも「破砕の物理」ではなく「破砕の見え方」の問題なので、
+  見え方を直接指示できる生成側が向いている。
+
+comfyui:
+  recipe: generative_shots
+  resolution: 480P
+  seed: 4200
+  shots:
+    - name: shot_01_impact
+      keyframe_prompt: >
+        Vertical 9:16 composition. A large clear glass pane in a thin dark metal
+        frame, still intact, lit from behind so the surface reads as glass, a
+        polished steel sphere entering from the lower foreground on its way to
+        the pane, dark studio background, high contrast, cinematic.
+      prompt: >
+        The camera holds completely still. The steel sphere strikes the glass
+        and the pane shatters at the point of contact, cracks racing outward
+        across the surface.
+      duration: 5
+      cues:
+        - {t: 1.1, type: impact, intensity: 1.0}
+        - {t: 1.4, type: whoosh, intensity: 0.5}
+        - {t: 2.3, type: drop, intensity: 0.7}
+    - name: shot_02_shards
+      keyframe_prompt: >
+        Vertical 9:16 composition. A shattered glass pane held in a dark metal
+        frame, a radial web of cracks spreading from a hole in the centre,
+        bright rim light catching every edge so the shards read clearly against
+        a dark studio background.
+      prompt: >
+        The camera holds completely still. Shards let go of the frame one after
+        another and fall out of it, tumbling and catching the light.
+      duration: 5
+      cues:
+        - {t: 0.5, type: impact, intensity: 0.8}
+        - {t: 1.6, type: drop, intensity: 0.65}
+        - {t: 2.7, type: drop, intensity: 0.55}
+        - {t: 3.9, type: drop, intensity: 0.45}
+    - name: shot_03_floor
+      keyframe_prompt: >
+        Vertical 9:16 composition. Broken glass fragments scattered across a
+        dark reflective floor, bright rim light along every edge, a few larger
+        pieces in the foreground, shallow depth of field, dark studio.
+      prompt: >
+        The camera holds completely still. The last fragments slide and skitter
+        a short distance across the floor and come to rest.
+      duration: 5
+      cues:
+        - {t: 0.4, type: impact, intensity: 0.5}
+        - {t: 1.5, type: settle, intensity: 0.3}
+
+render_preset: preview
+music_mood: "sparse, tense, low drone under sharp glass transients"
+caption: "ガラスの壁が一点から割れる #shorts #satisfying #simulation"
+hashtags: [satisfying, simulation, physics, glass, shorts]
+video_template: default_shorts
+narration:
+  enabled: false
+thumbnail:
+  style: vertical_cover
+  headline: 一点から割れる

@@ -47,16 +47,34 @@ def _build_wall(bpy, name, location, scale, mat):
 
 def setup_scene(params: dict):
     import bpy
-    from utils import clear_scene, setup_studio, setup_shorts_camera
+    from utils import clear_scene, setup_studio, setup_shorts_camera, set_world_image
 
     arena_w = float(params.get("arena_width", 2.6))
     arena_h = float(params.get("arena_height", 4.6))
     wall_t = float(params.get("wall_thickness", 0.12))
     ball_color = params.get("ball_color", [1.0, 0.45, 0.1])
 
+    # Gate 1 rejected this scene on `look` alone: dark metallic walls on a dark
+    # studio read as no walls at all, so the ball appeared to bounce in a void
+    # and the cause of each bounce was lost. The wall look and the studio style
+    # are params now so a concept can lift the walls off the background; the
+    # defaults below are the original hardcoded values, so existing concepts
+    # render exactly as before.
+    wall_color = params.get("wall_color", [0.1, 0.11, 0.14])
+    wall_roughness = float(params.get("wall_roughness", 0.28))
+    wall_metallic = float(params.get("wall_metallic", 0.7))
+    wall_emission = float(params.get("wall_emission_strength", 0.0))
+    studio_style = str(params.get("studio_style", "dark"))
+
     clear_scene()
-    setup_studio(style="dark", center=(0, 0, arena_h / 2), scale=1.5,
+    setup_studio(style=studio_style, center=(0, 0, arena_h / 2), scale=1.5,
                  include_backdrop=True)
+    # A generated backplate (source: hybrid) lights the arena from behind, which
+    # is what actually separates the walls from the background.
+    if params.get("backdrop_image"):
+        set_world_image(params["backdrop_image"],
+                        strength=float(params.get("world_strength", 1.0)),
+                        rotation_deg=float(params.get("hdri_rotation_deg", 0.0)))
     # Straight-on: any downward tilt turns the arena into a trapezoid and the
     # bounce geometry stops reading.
     setup_shorts_camera(
@@ -70,9 +88,14 @@ def setup_scene(params: dict):
     wall_mat = bpy.data.materials.new("wall_mat")
     wall_mat.use_nodes = True
     wbsdf = wall_mat.node_tree.nodes["Principled BSDF"]
-    wbsdf.inputs["Base Color"].default_value = (0.1, 0.11, 0.14, 1)
-    wbsdf.inputs["Roughness"].default_value = 0.28
-    wbsdf.inputs["Metallic"].default_value = 0.7
+    wbsdf.inputs["Base Color"].default_value = (*wall_color, 1)
+    wbsdf.inputs["Roughness"].default_value = wall_roughness
+    wbsdf.inputs["Metallic"].default_value = wall_metallic
+    # Emission is what makes the walls read at all against a dark studio.
+    # Blender 3.x calls the socket "Emission"; 4.x split it into two.
+    if wall_emission > 0 and "Emission Color" in wbsdf.inputs:
+        wbsdf.inputs["Emission Color"].default_value = (*wall_color, 1)
+        wbsdf.inputs["Emission Strength"].default_value = wall_emission
 
     half_w, half_t = arena_w / 2, wall_t / 2
     _build_wall(bpy, "wall_left", (-half_w - half_t, 0, arena_h / 2),

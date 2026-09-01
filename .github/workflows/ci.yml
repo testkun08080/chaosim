@@ -70,6 +70,49 @@ jobs:
             echo "::error::expected blender=False under CHAOSIM_STUB"; exit 1; }
           echo "stub pipeline OK (${bytes} bytes)"
 
+      - name: ComfyUI-backed pipeline (stub mode)
+        env:
+          CHAOSIM_STUB: '1'
+          # Deliberately not set: COMFYUI_SANDBOX_PATH. With no sandbox on the
+          # runner, comfyui_available() is false, every call degrades to an
+          # ffmpeg stub, and nothing can reach a paid API from CI.
+          CONCEPT: concepts/comfyui/sand_avalanche_asmr_comfy.yaml
+        run: |
+          set -euo pipefail
+          python scripts/chaosim.py run "$CONCEPT" 2>&1 | tee comfy-run.log
+
+      - name: Verify the generated path produced sound
+        env:
+          SLUG: sand_avalanche_asmr_comfy
+        run: |
+          set -euo pipefail
+          events="outputs/renders/${SLUG}_events.json"
+          test -f "$events" || {
+            echo "::error::$events was not written — the compose stage would be silent"
+            exit 1; }
+          # A generated concept has no bake, so the events sidecar is the only
+          # timing information downstream gets. An empty one renders a video
+          # that looks right and is completely mute.
+          python -c '
+          import json, sys
+          events = json.load(open(sys.argv[1]))["events"]
+          assert events, "events sidecar is empty"
+          for e in events:
+              assert {"t", "type", "intensity", "source"} <= set(e), e
+          print(f"{len(events)} typed events OK")
+          ' "$events"
+          grep -q "sfx cues: [1-9]" comfy-run.log || {
+            echo "::error::no SFX cues reached the mix"; exit 1; }
+
+      - name: SFX report
+        env:
+          CHAOSIM_STUB: '1'
+        run: |
+          set -euo pipefail
+          # --check fails only when a concept has events and none of them
+          # resolved to a sound. A concept with no events at all is fine.
+          python scripts/chaosim.py sfx-report --check 2>&1 | tee sfx-run.log
+
       - name: Upload stub output
         if: always()
         uses: actions/upload-artifact@v4
@@ -77,7 +120,12 @@ jobs:
           name: ci-stub-output
           path: |
             stub-run.log
+            comfy-run.log
+            sfx-run.log
             outputs/final/*.mp4
             outputs/final/*.png
+            outputs/sfx/sfx.json
+            outputs/sfx/sfx.csv
+            docs/sfx/README.md
           if-no-files-found: ignore
           retention-days: 3

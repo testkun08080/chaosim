@@ -1,0 +1,116 @@
+title: 面数で変わる布 — Hybrid
+slug: cloth_by_faces_hybrid
+source: hybrid
+simulator: blender
+scene_script: cloth_drop_faces
+duration_sec: 20
+description: >
+  concepts/cloth_by_faces.yaml と同じ段階比較（面数 16 → 64 → 256 → 1024）を
+  そのまま回し、HDRI だけ ComfyUI 生成の環境画像に差し替えたバージョン。
+hook: 面数16のカクカクした金属シートが、面数を上げるほど布のように垂れ込む
+viral_angle: >
+  「面数を増やすと布になる」比較は 3DCG クラスタで鉄板の満足感ネタ。
+  この企画を完全生成に回さないのは、比較そのものがパラメトリックだから。
+  16面と1024面の違いは生成モデルには指示できないし、視聴者が画面上で
+  検証できてしまうので、嘘が効かない。gate1 で落ちているのは framing と
+  look（camera_pitch_deg 60 で箱の穴が見えない／AgX + exposure -0.3 で
+  金の彩度が飛ぶ）なので、直すのはカメラと環境光だけでいい。
+
+comfyui:
+  recipe: look_assets
+  seed: 4500
+  assets:
+    # cloth_drop_faces.setup_environment が environment: hdri のときに読むキー。
+    # 生成物は PNG なので LDR。本物の HDRI のような強いハイライトは出ないが、
+    # 環境の色と明暗の配置は決められる。
+    - param: world_hdri
+      name: sky_plate
+      size: "1344x768"
+      prompt: >
+        An equirectangular sky panorama, clear blue sky with soft scattered
+        white cumulus clouds, bright sun high and slightly to the left, clean
+        horizon, no ground detail, no buildings, no birds.
+
+params:
+  face_counts: [16, 64, 256, 1024]
+  stage_duration_sec: 5
+  cloth_stiffness: 2.0
+  cloth_mass: 0.5
+  cloth_bending: 1.2
+  cloth_quality: 18
+  collision_quality: 12
+  sheet_size: 1.9
+  drop_height: 0.3
+  gold_color: [1.0, 0.62, 0.13]
+  gold_roughness: 0.32
+  fabric_scale: 190
+  fabric_bump: 0.06
+  box_size: 2.2
+  box_height: 1.4
+  hole_size: 0.85
+  hole_depth: 0.9
+  wood_color: [0.36, 0.22, 0.11]
+  wood_roughness: 0.5
+  environment: hdri
+  world_hdri: assets/hdri/kloppenheim_06_puresky_1k.hdr   # 生成が走ると差し替わる
+  world_strength: 1.0
+  hdri_rotation_deg: 0
+  view_transform: AgX
+  # gate1: AgX + exposure -0.3 で金の彩度が飛び、薄いクリーム色に見えた。
+  exposure: 0.0
+  camera_lens: 30
+  camera_distance: 3.0
+  camera_height: 1.8
+  # gate1: 60 だと画面下40%が木箱の側面、上35%が空で、箱の穴が一度も見えない。
+  camera_pitch_deg: 42
+
+render_preset: preview
+music_mood: ambient
+caption: '面数を増やすと金属板が布になる #shorts #cloth #blender #satisfying'
+hashtags: [cloth, blender, satisfying, physics, shorts]
+video_template: minimal
+segments:
+  - role: sim
+    track: base
+    duration: remainder
+  - role: face_16
+    track: overlay
+    template: face_count
+    text: "16"
+    label: FACES
+    start: 0
+    duration: 5
+    transparent: true
+  - role: face_64
+    track: overlay
+    template: face_count
+    text: "64"
+    label: FACES
+    start: 5
+    duration: 5
+    transparent: true
+  - role: face_256
+    track: overlay
+    template: face_count
+    text: "256"
+    label: FACES
+    start: 10
+    duration: 5
+    transparent: true
+  - role: face_1024
+    track: overlay
+    template: face_count
+    text: "1024"
+    label: FACES
+    start: 15
+    duration: 5
+    transparent: true
+  - role: outro
+    template: outro
+    track: base
+    duration: 3.0
+narration:
+  enabled: false
+thumbnail:
+  style: bold_headline
+  headline: 面数で布になる

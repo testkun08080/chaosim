@@ -229,6 +229,61 @@ def _set_world(color, strength: float):
         bg.inputs["Strength"].default_value = strength
 
 
+def set_world_image(path, strength: float = 1.0, rotation_deg: float = 0.0) -> bool:
+    """Light the scene with an image instead of a flat world colour.
+
+    Narrower than ``cloth_drop_faces.setup_environment`` on purpose: that one
+    picks between sky / hdri / solid, this one only does "use this file". It
+    exists so a scene can accept a generated backplate (``source: hybrid``
+    concepts point a param at ``assets/generated/<slug>/``) without growing its
+    own environment logic.
+
+    Call it after ``setup_studio()``, which sets the flat world colour it
+    replaces. Returns False if the image could not be loaded, leaving whatever
+    world was already set — a missing plate should dim the look, not stop the
+    render.
+    """
+    import bpy
+    import math
+    from pathlib import Path
+
+    candidate = Path(str(path))
+    if not candidate.is_absolute():
+        # utils.py lives at simulators/blender/, so the repo root is two up.
+        candidate = Path(__file__).resolve().parent.parent.parent / candidate
+    if not candidate.is_file():
+        print(f"  world image not found: {candidate}")
+        return False
+
+    world = bpy.context.scene.world
+    if world is None:
+        world = bpy.data.worlds.new("World")
+        bpy.context.scene.world = world
+    world.use_nodes = True
+    nt = world.node_tree
+    nt.nodes.clear()
+    out = nt.nodes.new("ShaderNodeOutputWorld")
+    bg = nt.nodes.new("ShaderNodeBackground")
+    bg.inputs["Strength"].default_value = float(strength)
+    nt.links.new(bg.outputs["Background"], out.inputs["Surface"])
+
+    try:
+        tex = nt.nodes.new("ShaderNodeTexEnvironment")
+        tex.image = bpy.data.images.load(str(candidate))
+    except Exception as exc:  # noqa: BLE001
+        print(f"  world image load failed ({exc})")
+        return False
+
+    tc = nt.nodes.new("ShaderNodeTexCoord")
+    mp = nt.nodes.new("ShaderNodeMapping")
+    mp.inputs["Rotation"].default_value = (0.0, 0.0, math.radians(float(rotation_deg)))
+    nt.links.new(tc.outputs["Generated"], mp.inputs["Vector"])
+    nt.links.new(mp.outputs["Vector"], tex.inputs["Vector"])
+    nt.links.new(tex.outputs["Color"], bg.inputs["Color"])
+    print(f"  world image: {candidate}")
+    return True
+
+
 def _make_matte_material(name: str, color, roughness: float = 0.55):
     import bpy
 

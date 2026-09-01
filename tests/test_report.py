@@ -186,7 +186,8 @@ class CsvRowTests(unittest.TestCase):
 
     def test_catalog_rows_have_one_row_per_concept(self):
         ctx = {"entries": [
-            {"slug": "a", "title": "A", "scene": "s", "duration_sec": 6, "preset": "preview",
+            {"slug": "a", "title": "A", "source": "blender", "scene": "s", "recipe": "",
+             "shots": 0, "cues": 0, "duration_sec": 6, "preset": "preview",
              "staged": False, "params_declared": 5, "params_live": 3, "errors": 0,
              "warnings": 1, "findings": [{"code": "dead-params"}], "has_gate1": True,
              "path": "concepts/a.yaml"},
