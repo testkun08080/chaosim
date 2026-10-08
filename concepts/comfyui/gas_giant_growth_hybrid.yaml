@@ -1,0 +1,83 @@
+title: "The Gas Giant Grows Every Bounce — Hybrid"
+slug: gas_giant_growth_hybrid
+source: hybrid
+simulator: blender
+scene_script: growing_ball
+duration_sec: 20
+description: >
+  木星のようなガス惑星が箱の中で跳ね回り、壁に当たるたびに少し大きくなって
+  最後は箱いっぱいに詰まる。物理とレンダーは Blender、惑星の表面と宇宙の
+  背景だけ ComfyUI で作る。合成は HyperFrames。
+hook: "フレーム1から縞模様の惑星が跳ね始める。2バウンド目には既に目に見えて大きい"
+viral_angle: >
+  「跳ねるたびに大きくなるボール」（ViralBalls 系）は予測ループで見せる型で、
+  growing_ball_bounce は gate1 で framing/sim/hook が通り、落ちたのは look だけ
+  だった。この企画はその look を「ただの橙の球」から「惑星」に差し替える。
+  球が惑星になると、成長が「天体が膨らむ」というスケール感の話になり、
+  最後に箱へ詰まる瞬間の絵に意味が出る。
+  物理は一切触らない（衝突時刻＝効果音の当て先がベイク由来のまま正確）。
+  ComfyUI に頼むのは素材2枚だけ: 球に巻く表面マップと、背景プレート。
+  注意: 型そのものの実績は確認できているが（Know Your Meme の
+  "Will the ball escape" など）、惑星化でさらに伸びるかは未検証。
+
+comfyui:
+  recipe: look_assets
+  seed: 5300
+  assets:
+    # growing_ball.py が ball_texture_image を球に巻く。横縞なら継ぎ目が目立たず、
+    # 画像モデルも出しやすいのでガス惑星にしている。
+    - param: ball_texture_image
+      name: gas_giant_surface
+      size: "1344x768"
+      prompt: >
+        A flat texture map of a Jupiter-like gas giant surface, horizontal
+        bands of cream, rust orange and deep brown clouds, swirling storm
+        eddies between the bands, fine turbulent detail, evenly lit, filling
+        the entire frame edge to edge, no planet outline, no sphere, no stars,
+        no horizon.
+    # ボールが暖色なので背景は深い青の宇宙にして色で離す。
+    - param: backdrop_image
+      name: space_backplate
+      size: "1344x768"
+      prompt: >
+        A deep midnight blue and indigo outer space backdrop, soft faint
+        nebula glow in teal, a few tiny distant stars, calm and dark with a
+        gentle cool glow along the upper edge, completely empty, no planets,
+        no objects, no text.
+
+params:
+  start_radius: 0.12
+  growth_rate: 1.085
+  max_bounces: 40
+  arena_width: 2.6
+  arena_height: 4.6
+  wall_thickness: 0.12
+  initial_speed: 7.5
+  initial_angle_deg: 63
+  gravity: 0.0
+  ball_color: [0.85, 0.5, 0.25]         # テクスチャ読込に失敗したときの代替色
+  ball_texture_image: ...               # 生成が走ると差し替わる
+  ball_spin_deg_per_sec: 40
+  backdrop_image: ...                   # 同上
+  camera_distance: 6.5
+  camera_height: 0.0
+  camera_pitch_deg: 90
+  camera_lens: 40
+  # gate1 の look 指摘（壁が背景に溶ける）への答えは growing_ball_bounce_hybrid と同じ。
+  # 壁を寒色の明色にして自発光を乗せ、暖色の惑星から色と明度で離す。
+  wall_color: [0.28, 0.62, 0.78]
+  wall_roughness: 0.35
+  wall_metallic: 0.25
+  wall_emission_strength: 0.8
+  world_strength: 0.9
+
+render_preset: preview
+music_mood: "deep cinematic sub-bass pulse on each bounce, tempo rising with the hit rate"
+caption: "惑星が跳ねるたびに大きくなって箱に詰まるまで #shorts #satisfying #simulation #space"
+hashtags: [satisfying, simulation, physics, space, shorts]
+video_template: default_shorts
+narration:
+  enabled: false
+thumbnail:
+  style: vertical_cover
+  headline: 惑星が育つ

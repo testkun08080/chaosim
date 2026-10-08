@@ -25,6 +25,10 @@ Params:
   initial_angle_deg: float (default 63)   launch direction from the +X axis
   gravity: float (default 0.0)            0 keeps it pinballing forever
   ball_color: [r, g, b] (default warm orange)
+  ball_texture_image: path (default none)  equirectangular map wrapped on the ball
+                                           (a generated planet surface, for source: hybrid)
+  ball_spin_deg_per_sec: float (default 0) spin about the vertical axis, so a textured
+                                           ball reads as a planet rather than a sticker
   camera_distance: float (default derived from the arena height)
   camera_height: float (default 0)
   camera_pitch_deg: float (default 90)    dead-on, so the arena reads as a rectangle
@@ -47,7 +51,8 @@ def _build_wall(bpy, name, location, scale, mat):
 
 def setup_scene(params: dict):
     import bpy
-    from utils import clear_scene, setup_studio, setup_shorts_camera, set_world_image
+    from utils import (clear_scene, setup_studio, setup_shorts_camera,
+                       set_world_image, load_image)
 
     arena_w = float(params.get("arena_width", 2.6))
     arena_h = float(params.get("arena_height", 4.6))
@@ -125,6 +130,15 @@ def setup_scene(params: dict):
     mix = bmat.node_tree.nodes.new("ShaderNodeMixShader")
     mix.inputs["Fac"].default_value = 0.35
     out = bmat.node_tree.nodes["Material Output"]
+    # A generated surface map drives both the lit and the emissive half of the
+    # mix, so the colours survive the emission instead of washing to one tint.
+    # A missing or unreadable file leaves the flat ball_color material.
+    ball_tex = load_image(params["ball_texture_image"]) if params.get("ball_texture_image") else None
+    if ball_tex is not None:
+        tex_node = bmat.node_tree.nodes.new("ShaderNodeTexImage")
+        tex_node.image = ball_tex
+        bmat.node_tree.links.new(tex_node.outputs["Color"], bbsdf.inputs["Base Color"])
+        bmat.node_tree.links.new(tex_node.outputs["Color"], emission.inputs["Color"])
     bmat.node_tree.links.new(bbsdf.outputs["BSDF"], mix.inputs[1])
     bmat.node_tree.links.new(emission.outputs["Emission"], mix.inputs[2])
     bmat.node_tree.links.new(mix.outputs["Shader"], out.inputs["Surface"])
@@ -145,6 +159,7 @@ def run_simulation(params: dict = None):
     speed = float(params.get("initial_speed", 7.5))
     angle_deg = float(params.get("initial_angle_deg", 63))
     gravity = float(params.get("gravity", 0.0))
+    spin = math.radians(float(params.get("ball_spin_deg_per_sec", 0.0)))
 
     scene = bpy.context.scene
     fps = float(scene.render.fps) or 30.0
@@ -167,6 +182,9 @@ def run_simulation(params: dict = None):
         ball.scale = (r, r, r)
         ball.keyframe_insert("location", frame=frame)
         ball.keyframe_insert("scale", frame=frame)
+        if spin:
+            ball.rotation_euler = (0.0, 0.0, spin * (frame - scene.frame_start) * dt)
+            ball.keyframe_insert("rotation_euler", frame=frame)
 
         vz -= gravity * dt
         x += vx * dt
