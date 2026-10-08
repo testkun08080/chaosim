@@ -8,11 +8,11 @@
 
 | | |
 |---|---|
-| 企画数 | 29 |
-| source 内訳 | blender 24 / comfyui 3 / hybrid 2 |
+| 企画数 | 30 |
+| source 内訳 | blender 24 / comfyui 3 / hybrid 3 |
 | error | 0 |
 | warning | 2 |
-| params 到達率 | **297 / 299 (99%)** |
+| params 到達率 | **319 / 321 (99%)** |
 
 > **2 個の params が YAML に書かれているだけでコードに届いていない。**
 > `runner.py` は `run_simulation()` に params を渡さないため、`setup_scene()` の外で
@@ -33,6 +33,7 @@ error / warning の多い順。
 | [`cloth_by_faces_hybrid`](#cloth_by_faces_hybrid) | hybrid | `cloth_drop_faces` ⧉ + `look_assets` 🎞 | 20s | preview | 29/29 | ✅ |
 | [`double_spiral_domino`](#double_spiral_domino) 📄 | blender | `domino_chain` | 18s | preview | 6/6 | ✅ |
 | [`funnel_vortex_marbles`](#funnel_vortex_marbles) 📄 | blender | `funnel_vortex` | 18s | preview | 14/14 | ✅ |
+| [`gas_giant_growth_hybrid`](#gas_giant_growth_hybrid) | hybrid | `growing_ball` + `look_assets` 🎞 | 20s | preview | 22/22 | ✅ |
 | [`glass_fracture_wall`](#glass_fracture_wall) 📄 | blender | `glass_fracture_wall` | 10s | preview | 14/14 | ✅ |
 | [`glass_fracture_wall_comfy`](#glass_fracture_wall_comfy) | comfyui | `generative_shots` 🎞 | 15s | preview | 3カット/9cue | ✅ |
 | [`growing_ball_bounce`](#growing_ball_bounce) 📄 | blender | `growing_ball` | 20s | preview | 14/14 | ✅ |
@@ -128,6 +129,14 @@ Phase 1 コンタクトシート: [`docs/gate1/double_spiral_domino_contact.png`
 指摘なし。
 
 Phase 1 コンタクトシート: [`docs/gate1/funnel_vortex_marbles_contact.png`](../gate1/funnel_vortex_marbles_contact.png)
+
+### gas_giant_growth_hybrid
+
+The Gas Giant Grows Every Bounce — Hybrid
+`concepts/comfyui/gas_giant_growth_hybrid.yaml`
+> フレーム1から縞模様の惑星が跳ね始める。2バウンド目には既に目に見えて大きい
+
+指摘なし。
 
 ### glass_fracture_wall
 
@@ -334,7 +343,7 @@ Phase 1 コンタクトシート: [`docs/gate1/soft_body_torus_compare_contact.p
 | `fluid_ink` | ✅ | ✅ | — | — | 4 | `sample_002_fluid_ink` |
 | `funnel_vortex` | ✅ | ✅ | — | — | 14 | `funnel_vortex_marbles` |
 | `glass_fracture_wall` | ✅ | ✅ | — | ✅ | 14 | `glass_fracture_wall` |
-| `growing_ball` | ✅ | ✅ | — | ✅ | 22 | `growing_ball_bounce`, `growing_ball_bounce_hybrid` |
+| `growing_ball` | ✅ | ✅ | — | ✅ | 24 | `gas_giant_growth_hybrid`, `growing_ball_bounce`, `growing_ball_bounce_hybrid` |
 | `lorenz_attractor` | ✅ | ✅ | — | — | 7 | `sample_004_lorenz_attractor` |
 | `magnetic_pendulum` | ✅ | ✅ | — | — | 8 | `magnetic_pendulum_ufo` |
 | `marble_race` | ✅ | ✅ | — | ✅ | 14 | `marble_elimination_race` |
@@ -356,7 +365,7 @@ Phase 1 コンタクトシート: [`docs/gate1/soft_body_torus_compare_contact.p
 | recipe | build_jobs | apply_assets | 読む項目 | 使っている企画 |
 |---|:-:|:-:|---:|---|
 | `generative_shots` | ✅ | — | 15 | `glass_fracture_wall_comfy`, `press_crush_showdown_comfy`, `sand_avalanche_asmr_comfy` |
-| `look_assets` | ✅ | ✅ | 10 | `cloth_by_faces_hybrid`, `growing_ball_bounce_hybrid` |
+| `look_assets` | ✅ | ✅ | 10 | `cloth_by_faces_hybrid`, `gas_giant_growth_hybrid`, `growing_ball_bounce_hybrid` |
 
 ## 判定の仕方
 
