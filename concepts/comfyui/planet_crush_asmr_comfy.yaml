@@ -1,0 +1,81 @@
+title: "Crushing a Tiny Planet — ComfyUI"
+slug: planet_crush_asmr_comfy
+source: comfyui
+duration_sec: 15
+description: >
+  手のひらサイズの惑星（地殻・マントル・核が層になった断面模型）を、固定カメラの
+  油圧プレスがゆっくり潰す。地殻が割れ、マントルが絞り出され、最後に光る核が
+  潰れて止まる。「惑星を潰す」AI ASMR の生成版。
+hook: "1カット目、手のひらサイズの惑星の真上からプレス面が入ってくる"
+viral_angle: >
+  油圧プレス系は Hydraulic Press Channel が確立し、YouTube 公式が10周年企画で
+  取り上げるほど定着した型（固定カメラ・等速の下降・逃げ場のない対象）。
+  その上で「Crushing Planets」のような AI ASMR が、対象を現実に存在しない物に
+  振って差別化している。物理が検証できない題材なので source: comfyui が向く。
+  既存の press_crush_showdown_comfy は「小さなブロックの山」で、こちらは
+  「対象が一個の意味のある物体」で、層が順に壊れる3段階の見せ場がある。
+  注意: 2026年時点の具体的な再生数データは確認できていない。型の実績と、
+  AI 生成の ASMR 圧壊が既に投稿されている事実までが根拠。
+
+comfyui:
+  recipe: generative_shots
+  resolution: 480P
+  seed: 5200
+  shots:
+    - name: shot_01_descend
+      keyframe_prompt: >
+        Vertical 9:16 composition. A hand-sized miniature planet model, a
+        cutaway cross-section showing a thin rocky crust, an orange magma
+        mantle and a glowing yellow core, sitting on a steel anvil, a flat
+        steel hydraulic press plate entering from the top edge just above it,
+        industrial workshop lighting, dark background, the planet clearly the
+        subject.
+      prompt: >
+        The camera holds completely still. The steel press plate descends at a
+        slow constant rate, no easing, and touches the top of the planet.
+      duration: 5
+      cues:
+        - {t: 2.8, type: impact, intensity: 0.6}
+        - {t: 3.9, type: impact, intensity: 0.7}
+    - name: shot_02_crack
+      keyframe_prompt: >
+        Vertical 9:16 composition. A miniature cutaway planet model squeezed
+        under a flat steel press plate, the rocky crust cracking open with
+        bright orange magma glowing through the fractures, industrial workshop
+        lighting, dark background, close on the planet.
+      prompt: >
+        The camera holds completely still. The plate keeps descending. The
+        crust shatters into plates and thick orange magma squeezes out sideways
+        past the edge of the plate.
+      duration: 5
+      cues:
+        - {t: 0.6, type: collapse, intensity: 0.9}
+        - {t: 1.4, type: impact, intensity: 0.75}
+        - {t: 2.3, type: whoosh, intensity: 0.5}
+        - {t: 3.2, type: impact, intensity: 0.65}
+    - name: shot_03_core
+      keyframe_prompt: >
+        Vertical 9:16 composition. The remains of a crushed miniature planet
+        pressed into a flat glowing disc of orange magma and dark rock under a
+        steel press plate, a bright yellow core visible at the centre, loose
+        rock fragments scattered on the anvil, industrial workshop lighting,
+        dark background.
+      prompt: >
+        The camera holds completely still. The plate presses the glowing core
+        flat and stops. Embers and loose fragments rock and settle.
+      duration: 5
+      cues:
+        - {t: 0.7, type: collapse, intensity: 0.95}
+        - {t: 1.8, type: settle, intensity: 0.45}
+        - {t: 3.0, type: tick, intensity: 0.25}
+
+render_preset: preview
+music_mood: "industrial, low hum, deep sub-bass hit on each layer that breaks"
+caption: "惑星を油圧プレスで潰してみた #shorts #satisfying #asmr #hydraulicpress"
+hashtags: [satisfying, asmr, hydraulicpress, planet, shorts]
+video_template: default_shorts
+narration:
+  enabled: false
+thumbnail:
+  style: vertical_cover
+  headline: 惑星を潰す

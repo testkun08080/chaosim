@@ -8,8 +8,8 @@
 
 | | |
 |---|---|
-| 企画数 | 29 |
-| source 内訳 | blender 24 / comfyui 3 / hybrid 2 |
+| 企画数 | 30 |
+| source 内訳 | blender 24 / comfyui 4 / hybrid 2 |
 | error | 0 |
 | warning | 2 |
 | params 到達率 | **297 / 299 (99%)** |
@@ -42,6 +42,7 @@ error / warning の多い順。
 | [`magnetic_pendulum_ufo`](#magnetic_pendulum_ufo) 📄 | blender | `magnetic_pendulum` | 15s | preview | 8/8 | ✅ |
 | [`marble_elimination_race`](#marble_elimination_race) 📄 | blender | `marble_race` | 18s | preview | 14/14 | ✅ |
 | [`paper_to_cloth`](#paper_to_cloth) 📄 | blender | `paper_to_cloth` ⧉ | 24s | preview | 10/10 | ✅ |
+| [`planet_crush_asmr_comfy`](#planet_crush_asmr_comfy) | comfyui | `generative_shots` 🎞 | 15s | preview | 3カット/9cue | ✅ |
 | [`press_crush_showdown`](#press_crush_showdown) 📄 | blender | `press_crush` | 15s | preview | 13/13 | ✅ |
 | [`press_crush_showdown_comfy`](#press_crush_showdown_comfy) | comfyui | `generative_shots` 🎞 | 15s | preview | 3カット/8cue | ✅ |
 | [`pyramid_collapse_100`](#pyramid_collapse_100) 📄 | blender | `pyramid_collapse` | 15s | preview | 14/14 | ✅ |
@@ -211,6 +212,14 @@ Phase 1 コンタクトシート: [`docs/gate1/marble_elimination_race_contact.p
 
 Phase 1 コンタクトシート: [`docs/gate1/paper_to_cloth_contact.png`](../gate1/paper_to_cloth_contact.png)
 
+### planet_crush_asmr_comfy
+
+Crushing a Tiny Planet — ComfyUI
+`concepts/comfyui/planet_crush_asmr_comfy.yaml`
+> 1カット目、手のひらサイズの惑星の真上からプレス面が入ってくる
+
+指摘なし。
+
 ### press_crush_showdown
 
 Hydraulic Press vs 48 Blocks
@@ -355,7 +364,7 @@ Phase 1 コンタクトシート: [`docs/gate1/soft_body_torus_compare_contact.p
 
 | recipe | build_jobs | apply_assets | 読む項目 | 使っている企画 |
 |---|:-:|:-:|---:|---|
-| `generative_shots` | ✅ | — | 15 | `glass_fracture_wall_comfy`, `press_crush_showdown_comfy`, `sand_avalanche_asmr_comfy` |
+| `generative_shots` | ✅ | — | 15 | `glass_fracture_wall_comfy`, `planet_crush_asmr_comfy`, `press_crush_showdown_comfy`, `sand_avalanche_asmr_comfy` |
 | `look_assets` | ✅ | ✅ | 10 | `cloth_by_faces_hybrid`, `growing_ball_bounce_hybrid` |
 
 ## 判定の仕方
