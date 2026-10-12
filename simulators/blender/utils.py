@@ -229,6 +229,29 @@ def _set_world(color, strength: float):
         bg.inputs["Strength"].default_value = strength
 
 
+def load_image(path):
+    """Load a generated image for a material, or None if it is not there.
+
+    Same path rule as ``set_world_image``: relative paths are repo-root relative
+    (``source: hybrid`` concepts point params at ``assets/generated/<slug>/``).
+    A missing texture should leave the plain material, not stop the render.
+    """
+    import bpy
+    from pathlib import Path
+
+    candidate = Path(str(path))
+    if not candidate.is_absolute():
+        candidate = Path(__file__).resolve().parent.parent.parent / candidate
+    if not candidate.is_file():
+        print(f"  image not found: {candidate}")
+        return None
+    try:
+        return bpy.data.images.load(str(candidate))
+    except Exception as exc:  # noqa: BLE001
+        print(f"  image load failed ({exc})")
+        return None
+
+
 def set_world_image(path, strength: float = 1.0, rotation_deg: float = 0.0) -> bool:
     """Light the scene with an image instead of a flat world colour.
 
