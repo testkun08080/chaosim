@@ -133,6 +133,11 @@ defaults:
 
 permissions:
   contents: read
+  # upload.yml asks for this to fetch the artifact by run id, and a called
+  # workflow cannot hold more than its caller grants. Without it the run dies
+  # at startup (startup_failure) even when upload is switched off, because the
+  # permission check happens before the job's `if` is evaluated.
+  actions: read
 
 jobs:
   render:
